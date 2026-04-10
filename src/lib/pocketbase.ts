@@ -1,6 +1,6 @@
-import PocketBase from 'pocketbase';
+import db from './googleSheetsDB';
 
-// Replace with your actual PocketHost URL
-const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL || 'https://coffee-pos.pockethost.io');
+// We export the GoogleSheetsDB instance as 'pb' to maintain compatibility with existing code
+const pb = db;
 
 export default pb;

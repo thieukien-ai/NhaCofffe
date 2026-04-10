@@ -134,9 +134,16 @@ export default function BaristaView() {
                       <CardHeader className="p-4 border-b border-stone-700 flex flex-row items-center justify-between bg-stone-800/50">
                         <div>
                           <CardTitle className="text-lg text-stone-100">Bàn {order.table_number}</CardTitle>
-                          <div className="flex items-center gap-2 text-xs text-stone-400 mt-1">
-                            <Clock className="w-3 h-3" />
-                            {format(new Date(order.created), 'HH:mm')}
+                          <div className="flex flex-col gap-1 mt-1">
+                            <div className="flex items-center gap-2 text-xs text-stone-400">
+                              <Clock className="w-3 h-3" />
+                              {format(new Date(order.created), 'HH:mm')}
+                            </div>
+                            {order.notes && order.notes.startsWith('Khách hàng:') && (
+                              <div className="text-xs font-bold text-orange-400">
+                                {order.notes}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <Badge 

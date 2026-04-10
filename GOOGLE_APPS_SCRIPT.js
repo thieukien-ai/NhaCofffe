@@ -1,0 +1,161 @@
+/**
+ * GOOGLE APPS SCRIPT FOR COFFEE POS
+ * 
+ * HƯỚNG DẪN CÀI ĐẶT:
+ * 1. Tạo một Google Sheet mới.
+ * 2. Vào Extensions -> Apps Script.
+ * 3. Xóa hết mã cũ và dán mã này vào.
+ * 4. Bấm "Deploy" -> "New Deployment".
+ * 5. Chọn Type là "Web App".
+ * 6. Phần "Who has access" chọn "Anyone" (Quan trọng).
+ * 7. Copy URL nhận được và dán vào file .env (VITE_GOOGLE_SHEET_API_URL).
+ */
+
+const SPREADSHEET = SpreadsheetApp.getActiveSpreadsheet();
+
+function doGet(e) {
+  const action = e.parameter.action;
+  const sheetName = e.parameter.sheet;
+  
+  if (action === 'read') {
+    return readData(sheetName);
+  }
+  
+  return createResponse({ error: 'Invalid action' });
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const action = data.action;
+  const sheetName = data.sheet;
+  
+  if (action === 'create') {
+    return createData(sheetName, data.record);
+  } else if (action === 'update') {
+    return updateData(sheetName, data.id, data.record);
+  } else if (action === 'delete') {
+    return deleteData(sheetName, data.id);
+  } else if (action === 'auth') {
+    return handleAuth(data.identity, data.password);
+  }
+  
+  return createResponse({ error: 'Invalid action' });
+}
+
+function readData(sheetName) {
+  const sheet = getOrCreateSheet(sheetName);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const data = [];
+  
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const obj = {};
+    headers.forEach((header, index) => {
+      let val = row[index];
+      // Parse JSON strings back to objects/arrays if needed
+      if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+        try { val = JSON.parse(val); } catch(e) {}
+      }
+      obj[header] = val;
+    });
+    data.push(obj);
+  }
+  
+  return createResponse(data);
+}
+
+function createData(sheetName, record) {
+  const sheet = getOrCreateSheet(sheetName);
+  const headers = sheet.getDataRange().getValues()[0];
+  
+  if (!record.id) record.id = Utilities.getUuid();
+  if (!record.created) record.created = new Date().toISOString();
+  record.updated = new Date().toISOString();
+  
+  const newRow = headers.map(header => {
+    let val = record[header] || '';
+    if (typeof val === 'object') val = JSON.stringify(val);
+    return val;
+  });
+  
+  sheet.appendRow(newRow);
+  return createResponse(record);
+}
+
+function updateData(sheetName, id, record) {
+  const sheet = getOrCreateSheet(sheetName);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === id) { // Giả sử ID luôn ở cột đầu tiên
+      headers.forEach((header, index) => {
+        if (record[header] !== undefined) {
+          let val = record[header];
+          if (typeof val === 'object') val = JSON.stringify(val);
+          sheet.getRange(i + 1, index + 1).setValue(val);
+        }
+      });
+      sheet.getRange(i + 1, headers.indexOf('updated') + 1).setValue(new Date().toISOString());
+      return createResponse({ success: true });
+    }
+  }
+  return createResponse({ error: 'Not found' });
+}
+
+function deleteData(sheetName, id) {
+  const sheet = getOrCreateSheet(sheetName);
+  const values = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === id) {
+      sheet.deleteRow(i + 1);
+      return createResponse({ success: true });
+    }
+  }
+  return createResponse({ error: 'Not found' });
+}
+
+function handleAuth(identity, password) {
+  const sheet = getOrCreateSheet('users');
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const user = {};
+    headers.forEach((h, idx) => user[h] = row[idx]);
+    
+    if ((user.username === identity || user.email === identity) && user.password == password) {
+      return createResponse({ token: 'gs-token-' + user.id, record: user });
+    }
+  }
+  return createResponse({ error: 'Invalid credentials' }, 401);
+}
+
+function getOrCreateSheet(name) {
+  let sheet = SPREADSHEET.getSheetByName(name);
+  if (!sheet) {
+    sheet = SPREADSHEET.insertSheet(name);
+    // Khởi tạo headers dựa trên bảng
+    const defaultHeaders = {
+      'users': ['id', 'username', 'email', 'password', 'role', 'created', 'updated'],
+      'categories': ['id', 'name', 'icon', 'created', 'updated'],
+      'menu_items': ['id', 'name', 'description', 'price', 'cost_price', 'category', 'available', 'created', 'updated'],
+      'orders': ['id', 'table_number', 'status', 'total_amount', 'payment_status', 'notes', 'created', 'updated'],
+      'order_items': ['id', 'order', 'menu_item', 'quantity', 'price_at_order', 'notes', 'created', 'updated'],
+      'expenses': ['id', 'type', 'amount', 'description', 'date', 'created', 'updated'],
+      'daily_reports': ['id', 'date', 'total_revenue', 'total_expenses', 'total_labor_cost', 'total_ingredient_cost', 'net_profit', 'order_count', 'created', 'updated']
+    };
+    if (defaultHeaders[name]) {
+      sheet.appendRow(defaultHeaders[name]);
+    }
+  }
+  return sheet;
+}
+
+function createResponse(data, code = 200) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}

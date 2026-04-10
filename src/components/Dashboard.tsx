@@ -27,14 +27,27 @@ import {
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval } from 'date-fns';
 
 export default function Dashboard() {
+  const user = pb.authStore.model;
   const [stats, setStats] = useState({
     revenue: 0,
     expenses: 0,
-    orders: 0,
-    customers: 0
+    ingredientCost: 0,
+    profit: 0,
+    orders: 0
   });
   const [chartData, setChartData] = useState<any[]>([]);
   const [topItems, setTopItems] = useState<any[]>([]);
+
+  if (user?.username !== 'SA') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <div className="p-6 bg-red-50 text-red-600 rounded-3xl border border-red-100 text-center max-w-md">
+          <h2 className="text-2xl font-serif mb-2">Truy cập bị từ chối</h2>
+          <p className="text-sm">Chỉ tài khoản Quản trị viên (SA) mới có quyền xem Dashboard báo cáo chuyên sâu.</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,25 +58,42 @@ export default function Dashboard() {
       const today = startOfDay(new Date());
       const endToday = endOfDay(new Date());
 
-      // 1. Fetch Today's Orders
+      // 1. Fetch Today's Orders & Items
       const todayOrders = await pb.collection('orders').getFullList({
-        filter: `created >= "${today.toISOString()}" && created <= "${endToday.toISOString()}" && status = "completed"`
+        filter: `created >= "${today.toISOString()}" && created <= "${endToday.toISOString()}" && status = "completed"`,
+        expand: 'order_items_via_order'
       });
 
-      const revenue = todayOrders.reduce((sum, o) => sum + o.total_amount, 0);
+      let revenue: number = 0;
+      let ingredientCost: number = 0;
+
+      // Fetch all order items for today's orders
+      const orderItems = await pb.collection('order_items').getFullList({
+        expand: 'menu_item'
+      });
+
+      todayOrders.forEach((o: any) => {
+        revenue += (o.total_amount || 0);
+        const items = orderItems.filter((oi: any) => oi.order === o.id);
+        items.forEach((oi: any) => {
+          const cost = (oi.expand?.menu_item?.cost_price || 0) * oi.quantity;
+          ingredientCost += cost;
+        });
+      });
 
       // 2. Fetch Today's Expenses
       const todayExpenses = await pb.collection('expenses').getFullList({
         filter: `date >= "${today.toISOString()}" && date <= "${endToday.toISOString()}"`
       });
 
-      const expenses = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const expenses: number = (todayExpenses as any[]).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
       setStats({
         revenue,
         expenses,
-        orders: todayOrders.length,
-        customers: todayOrders.length // Simplified
+        ingredientCost,
+        profit: revenue - expenses - ingredientCost,
+        orders: todayOrders.length
       });
 
       // 3. Generate Chart Data (Last 7 days)
@@ -82,7 +112,7 @@ export default function Dashboard() {
         
         return {
           name: format(day, 'dd/MM'),
-          revenue: dayOrders.reduce((sum, o) => sum + o.total_amount, 0),
+          revenue: dayOrders.reduce((sum, o: any) => sum + (o.total_amount || 0), 0),
           orders: dayOrders.length
         };
       }));
@@ -105,38 +135,38 @@ export default function Dashboard() {
 
   const statCards = [
     { 
-      title: 'Doanh thu hôm nay', 
+      title: 'Doanh thu', 
       value: stats.revenue.toLocaleString('vi-VN') + 'đ', 
       icon: DollarSign, 
-      color: 'text-green-600', 
-      bg: 'bg-green-100',
+      color: 'text-emerald-600', 
+      bg: 'bg-emerald-50',
       trend: '+12%',
       trendUp: true
     },
     { 
-      title: 'Chi phí hôm nay', 
-      value: stats.expenses.toLocaleString('vi-VN') + 'đ', 
-      icon: TrendingDown, 
-      color: 'text-red-600', 
-      bg: 'bg-red-100',
+      title: 'Giá vốn hàng bán', 
+      value: stats.ingredientCost.toLocaleString('vi-VN') + 'đ', 
+      icon: Coffee, 
+      color: 'text-amber-600', 
+      bg: 'bg-amber-50',
       trend: '+5%',
       trendUp: false
     },
     { 
-      title: 'Đơn hàng hôm nay', 
-      value: stats.orders.toString(), 
-      icon: ShoppingCart, 
-      color: 'text-blue-600', 
-      bg: 'bg-blue-100',
-      trend: '+8%',
-      trendUp: true
+      title: 'Chi phí vận hành', 
+      value: stats.expenses.toLocaleString('vi-VN') + 'đ', 
+      icon: TrendingDown, 
+      color: 'text-rose-600', 
+      bg: 'bg-rose-50',
+      trend: '+2%',
+      trendUp: false
     },
     { 
       title: 'Lợi nhuận ròng', 
-      value: (stats.revenue - stats.expenses).toLocaleString('vi-VN') + 'đ', 
+      value: stats.profit.toLocaleString('vi-VN') + 'đ', 
       icon: TrendingUp, 
-      color: 'text-orange-600', 
-      bg: 'bg-orange-100',
+      color: 'text-primary', 
+      bg: 'bg-primary/10',
       trend: '+15%',
       trendUp: true
     },

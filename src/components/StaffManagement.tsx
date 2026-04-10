@@ -34,7 +34,8 @@ import { toast } from 'sonner';
 export default function StaffManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
@@ -55,12 +56,66 @@ export default function StaffManagement() {
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleOpenDialog = (user?: User) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        username: user.username,
+        email: user.email,
+        password: '',
+        passwordConfirm: '',
+        role: user.role
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        passwordConfirm: '',
+        role: 'staff'
+      });
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await pb.collection('users').create(newUser);
-      toast.success('Thêm nhân viên thành công');
+      const dummyEmail = formData.email || `${formData.username.toLowerCase()}@pos.internal`;
+      
+      if (editingUser) {
+        const updateData: any = {
+          username: formData.username,
+          email: dummyEmail,
+          role: formData.role
+        };
+        if (formData.password) {
+          updateData.password = formData.password;
+          updateData.passwordConfirm = formData.password;
+        }
+        await pb.collection('users').update(editingUser.id, updateData);
+        toast.success('Cập nhật nhân viên thành công');
+      } else {
+        await pb.collection('users').create({
+          ...formData,
+          email: dummyEmail,
+          passwordConfirm: formData.password
+        });
+        toast.success('Thêm nhân viên thành công');
+      }
       setIsDialogOpen(false);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error('Lỗi: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa nhân viên này?')) return;
+    try {
+      await pb.collection('users').delete(id);
+      toast.success('Xóa nhân viên thành công');
       fetchUsers();
     } catch (error: any) {
       toast.error('Lỗi: ' + error.message);
@@ -88,51 +143,52 @@ export default function StaffManagement() {
         </h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-stone-800 text-stone-50">
+            <Button onClick={() => handleOpenDialog()} className="bg-stone-800 text-stone-50">
               <UserPlus className="w-4 h-4 mr-2" />
               Thêm nhân viên
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Thêm nhân viên mới</DialogTitle>
+              <DialogTitle>{editingUser ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới'}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+            <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Tên đăng nhập</Label>
+                <Label htmlFor="username">Tên đăng nhập / SĐT / Tên</Label>
                 <Input 
                   id="username" 
-                  value={newUser.username} 
-                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Ví dụ: SA, 0901234567, Phuong..."
+                  value={formData.username} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
                   required 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email (Tùy chọn)</Label>
                 <Input 
                   id="email" 
                   type="email"
-                  value={newUser.email} 
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  required 
+                  placeholder="Để trống nếu không dùng email"
+                  value={formData.email} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Mật khẩu</Label>
+                  <Label htmlFor="password">Mật khẩu {editingUser && '(để trống nếu không đổi)'}</Label>
                   <Input 
                     id="password" 
                     type="password"
-                    value={newUser.password} 
-                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    required 
+                    value={formData.password} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required={!editingUser}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Vai trò</Label>
                   <Select 
-                    value={newUser.role} 
-                    onValueChange={(val: any) => setNewUser(prev => ({ ...prev, role: val }))}
+                    value={formData.role} 
+                    onValueChange={(val: any) => setFormData(prev => ({ ...prev, role: val }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -146,7 +202,9 @@ export default function StaffManagement() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" className="w-full bg-stone-800 text-stone-50">Tạo tài khoản</Button>
+                <Button type="submit" className="w-full bg-stone-800 text-stone-50">
+                  {editingUser ? 'Cập nhật' : 'Tạo tài khoản'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -178,8 +236,21 @@ export default function StaffManagement() {
                     {roleLabels[user.role]}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="text-stone-400 hover:text-red-600">
+                <TableCell className="text-right space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-stone-400 hover:text-stone-800"
+                    onClick={() => handleOpenDialog(user)}
+                  >
+                    <Plus className="w-4 h-4 rotate-45" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-stone-400 hover:text-red-600"
+                    onClick={() => handleDelete(user.id)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>

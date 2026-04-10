@@ -25,6 +25,78 @@ export default function App() {
     }
     setLoading(false);
 
+    // Automatic Seeding Logic for Google Sheets (or LocalStorage fallback)
+    const autoSeed = async () => {
+      try {
+        // 1. Check if we already have categories
+        const categories = await pb.collection('categories').getFullList();
+        if (categories.length > 0) {
+          console.log('Database already seeded.');
+          return;
+        }
+
+        console.log('Starting automatic seed...');
+        
+        // 2. Create Categories
+        const drinkCat = await pb.collection('categories').create({ id: 'cat_drinks', name: 'Đồ uống', icon: 'coffee' });
+        const snackCat = await pb.collection('categories').create({ id: 'cat_snacks', name: 'Đồ ăn vặt', icon: 'cookie' });
+
+        // 3. Create SA User
+        try {
+          await pb.collection('users').create({
+            id: 'user_sa',
+            username: 'SA',
+            email: 'sa@pos.internal',
+            password: '1',
+            role: 'admin'
+          });
+          console.log('Default SA user created.');
+        } catch (e) {
+          console.log('SA user might already exist.');
+        }
+
+        // 4. Create 50 Drinks
+        const drinkNames = ['Cà phê đen', 'Cà phê sữa', 'Bạc xỉu', 'Trà đào', 'Trà vải', 'Sữa chua', 'Sinh tố bơ', 'Nước ép cam', 'Trà sữa', 'Cacao'];
+        for (let i = 0; i < 50; i++) {
+          const name = drinkNames[i % drinkNames.length] + ` ${i + 1}`;
+          const price = Math.floor(Math.random() * (50 - 15 + 1) + 15) * 1000;
+          const cost_price = Math.floor(price * 0.4); // 40% cost
+          await pb.collection('menu_items').create({
+            id: `item_drink_${i}`,
+            name: name,
+            description: `Mô tả cho ${name}`,
+            price: price,
+            cost_price: cost_price,
+            category: drinkCat.id,
+            available: true
+          });
+        }
+
+        // 5. Create 20 Snacks
+        const snackNames = ['Hướng dương', 'Hạt điều', 'Khô gà', 'Bánh tráng', 'Cá viên chiên', 'Phô mai que'];
+        for (let i = 0; i < 20; i++) {
+          const name = snackNames[i % snackNames.length] + ` ${i + 1}`;
+          const price = Math.floor(Math.random() * (50 - 15 + 1) + 15) * 1000;
+          const cost_price = Math.floor(price * 0.5); // 50% cost
+          await pb.collection('menu_items').create({
+            id: `item_snack_${i}`,
+            name: name,
+            description: `Mô tả cho ${name}`,
+            price: price,
+            cost_price: cost_price,
+            category: snackCat.id,
+            available: true
+          });
+        }
+
+        console.log('Google Sheets automatic seed completed!');
+      } catch (error) {
+        console.error('Auto-seed error:', error);
+      }
+    };
+
+    autoSeed();
+
     // Listen for auth changes
     const unsubscribe = pb.authStore.onChange((token, model) => {
       setUser(model as unknown as User);
@@ -45,11 +117,9 @@ export default function App() {
     <Router>
       <div className="min-h-screen bg-stone-50 font-sans text-stone-900">
         <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+          <Route path="/login" element={<Login />} />
           
-          <Route path="/" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'barista' ? '/barista' : '/order'} /> : <Navigate to="/login" />} />
-          
-          <Route path="/order" element={user ? <OrderView /> : <Navigate to="/login" />} />
+          <Route path="/" element={<OrderView />} />
           
           <Route path="/barista" element={user ? <BaristaView /> : <Navigate to="/login" />} />
           

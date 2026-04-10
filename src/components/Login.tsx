@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import pb from '@/lib/pocketbase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Coffee } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion } from 'motion/react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,67 +19,69 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await pb.collection('users').authWithPassword(email, password);
+      await pb.collection('users').authWithPassword(identity, password);
       toast.success('Đăng nhập thành công');
       navigate('/');
     } catch (error: any) {
-      toast.error('Đăng nhập thất bại: ' + (error.message || 'Sai email hoặc mật khẩu'));
+      toast.error('Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu');
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-stone-100 p-4">
-      <Card className="w-full max-w-md border-stone-200 shadow-xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-2">
-            <div className="p-3 bg-stone-800 rounded-full">
-              <Coffee className="w-8 h-8 text-stone-50" />
+    <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Card className="coffee-card overflow-hidden">
+          <CardHeader className="bg-primary text-white p-8 text-center">
+            <div className="mx-auto w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mb-4">
+              <Coffee className="w-10 h-10" />
             </div>
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-stone-800">Coffee POS</CardTitle>
-          <CardDescription className="text-stone-500">
-            Đăng nhập để quản lý quán của bạn
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="name@example.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="border-stone-300 focus:ring-stone-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mật khẩu</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-stone-300 focus:ring-stone-500"
-              />
-            </div>
+            <CardTitle className="text-3xl font-serif">Chào mừng trở lại</CardTitle>
+            <CardDescription className="text-white/60 text-sm mt-2">
+              Đăng nhập để quản lý cửa hàng của bạn
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-8">
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="identity" className="text-stone-600">Tên đăng nhập / SĐT</Label>
+                <Input
+                  id="identity"
+                  placeholder="SA hoặc email..."
+                  value={identity}
+                  onChange={(e) => setIdentity(e.target.value)}
+                  className="h-12 rounded-2xl border-stone-200 focus:ring-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password text-stone-600">Mật khẩu</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 rounded-2xl border-stone-200 focus:ring-primary"
+                  required
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl transition-all"
+                disabled={loading}
+              >
+                {loading ? 'Đang xác thực...' : 'Đăng nhập'}
+              </Button>
+            </form>
           </CardContent>
-          <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full bg-stone-800 hover:bg-stone-700 text-stone-50" 
-              disabled={loading}
-            >
-              {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 }

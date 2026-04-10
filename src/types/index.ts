@@ -9,12 +9,24 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
+  cost_price: number; // Added for profit calculation
   category: string;
   expand?: {
     category: Category;
   };
   image?: string;
   available: boolean;
+}
+
+export interface DailyReport {
+  id: string;
+  date: string;
+  total_revenue: number;
+  total_expenses: number;
+  total_labor_cost: number;
+  total_ingredient_cost: number;
+  net_profit: number;
+  order_count: number;
 }
 
 export interface Order {
