@@ -10,7 +10,8 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ export default function AdminLayout() {
   const navItems = [
     { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
     { icon: Coffee, label: 'Quản lý Menu', path: '/admin/menu' },
+    { icon: Package, label: 'Nhập nguyên liệu', path: '/admin/ingredients' },
     { icon: Receipt, label: 'Lịch sử đơn hàng', path: '/admin/orders' },
     { icon: TrendingUp, label: 'Chi phí & Doanh thu', path: '/admin/expenses' },
     { icon: Users, label: 'Nhân viên', path: '/admin/staff' },

@@ -48,10 +48,21 @@ export interface OrderItem {
   menu_item: string;
   quantity: number;
   price_at_order: number;
+  status: 'pending' | 'preparing' | 'ready' | 'served'; // Added status for tracking
   notes?: string;
   expand?: {
     menu_item: MenuItem;
   };
+}
+
+export interface IngredientImport {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  price: number;
+  supplier: string;
+  date: string;
 }
 
 export interface Expense {

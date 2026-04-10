@@ -144,9 +144,10 @@ function getOrCreateSheet(name) {
       'categories': ['id', 'name', 'icon', 'created', 'updated'],
       'menu_items': ['id', 'name', 'description', 'price', 'cost_price', 'category', 'available', 'created', 'updated'],
       'orders': ['id', 'table_number', 'status', 'total_amount', 'payment_status', 'notes', 'created', 'updated'],
-      'order_items': ['id', 'order', 'menu_item', 'quantity', 'price_at_order', 'notes', 'created', 'updated'],
+      'order_items': ['id', 'order', 'menu_item', 'quantity', 'price_at_order', 'status', 'notes', 'created', 'updated'],
       'expenses': ['id', 'type', 'amount', 'description', 'date', 'created', 'updated'],
-      'daily_reports': ['id', 'date', 'total_revenue', 'total_expenses', 'total_labor_cost', 'total_ingredient_cost', 'net_profit', 'order_count', 'created', 'updated']
+      'daily_reports': ['id', 'date', 'total_revenue', 'total_expenses', 'total_labor_cost', 'total_ingredient_cost', 'net_profit', 'order_count', 'created', 'updated'],
+      'ingredient_imports': ['id', 'name', 'quantity', 'unit', 'price', 'supplier', 'date', 'created', 'updated']
     };
     if (defaultHeaders[name]) {
       sheet.appendRow(defaultHeaders[name]);

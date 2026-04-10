@@ -82,7 +82,8 @@ class GoogleSheetsDB {
       orders: [],
       order_items: [],
       expenses: [],
-      daily_reports: []
+      daily_reports: [],
+      ingredient_imports: []
     };
 
     const table = data[sheet] || [];

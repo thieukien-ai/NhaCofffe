@@ -12,6 +12,7 @@ import ExpenseManagement from '@/components/ExpenseManagement';
 import StaffManagement from '@/components/StaffManagement';
 import OrderHistory from '@/components/OrderHistory';
 import SetupInstructions from '@/components/SetupInstructions';
+import IngredientManagement from '@/components/IngredientManagement';
 import { User } from '@/types';
 
 export default function App() {
@@ -90,6 +91,59 @@ export default function App() {
         }
 
         console.log('Google Sheets automatic seed completed!');
+
+        // 6. Create Fake Orders and Items for testing
+        const tables = [1, 2, 3, 4, 5];
+        for (const tableNum of tables) {
+          const order = await pb.collection('orders').create({
+            table_number: tableNum,
+            status: 'preparing',
+            total_amount: 0,
+            payment_status: 'unpaid'
+          });
+
+          let total = 0;
+          const itemsToCreate = Math.floor(Math.random() * 3) + 1;
+          const allItems = await pb.collection('menu_items').getFullList() as any[];
+          
+          for (let j = 0; j < itemsToCreate; j++) {
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+            const qty = Math.floor(Math.random() * 2) + 1;
+            await pb.collection('order_items').create({
+              order: order.id,
+              menu_item: randomItem.id,
+              quantity: qty,
+              price_at_order: randomItem.price,
+              status: 'preparing'
+            });
+            total += randomItem.price * qty;
+          }
+          await pb.collection('orders').update(order.id, { total_amount: total });
+        }
+
+        // 7. Create Fake Expenses
+        const expenseTypes = ['utility', 'salary', 'other'];
+        for (let i = 0; i < 5; i++) {
+          await pb.collection('expenses').create({
+            type: expenseTypes[i % expenseTypes.length],
+            amount: (Math.floor(Math.random() * 10) + 5) * 100000,
+            description: `Chi phí mẫu ${i + 1}`,
+            date: new Date().toISOString()
+          });
+        }
+
+        // 8. Create Fake Ingredient Imports
+        const ingredients = ['Hạt cà phê Arabica', 'Sữa đặc', 'Đường', 'Trà đen', 'Bột cacao'];
+        for (let i = 0; i < 5; i++) {
+          await pb.collection('ingredient_imports').create({
+            name: ingredients[i % ingredients.length],
+            quantity: Math.floor(Math.random() * 20) + 5,
+            unit: 'kg',
+            price: (Math.floor(Math.random() * 20) + 10) * 10000,
+            supplier: 'Nhà cung cấp ABC',
+            date: new Date().toISOString()
+          });
+        }
       } catch (error) {
         console.error('Auto-seed error:', error);
       }
@@ -126,6 +180,7 @@ export default function App() {
           <Route path="/admin" element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
             <Route index element={<Dashboard />} />
             <Route path="menu" element={<MenuManagement />} />
+            <Route path="ingredients" element={<IngredientManagement />} />
             <Route path="expenses" element={<ExpenseManagement />} />
             <Route path="staff" element={<StaffManagement />} />
             <Route path="orders" element={<OrderHistory />} />

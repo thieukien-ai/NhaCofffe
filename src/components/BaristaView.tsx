@@ -64,10 +64,30 @@ export default function BaristaView() {
     }
   };
 
+  const updateItemStatus = async (itemId: string, status: OrderItem['status']) => {
+    try {
+      await pb.collection('order_items').update(itemId, { status });
+      toast.success('Đã cập nhật trạng thái món');
+      fetchOrders(); // Refresh to show changes
+    } catch (error) {
+      toast.error('Lỗi khi cập nhật trạng thái món');
+    }
+  };
+
   const updateStatus = async (orderId: string, status: Order['status']) => {
     try {
       await pb.collection('orders').update(orderId, { status });
+      if (status === 'completed') {
+        // Mark all items as ready if order is completed
+        const order = orders.find(o => o.id === orderId);
+        if (order?.expand?.order_items_via_order) {
+          await Promise.all(order.expand.order_items_via_order.map(item => 
+            pb.collection('order_items').update(item.id, { status: 'ready' })
+          ));
+        }
+      }
       toast.success(`Đã cập nhật trạng thái: ${status}`);
+      fetchOrders();
     } catch (error) {
       toast.error('Lỗi khi cập nhật trạng thái');
     }
@@ -156,14 +176,56 @@ export default function BaristaView() {
                         </Badge>
                       </CardHeader>
                       <CardContent className="p-4">
-                        <ul className="space-y-3">
+                        <ul className="space-y-4">
                           {order.expand?.order_items_via_order?.map((item) => (
-                            <li key={item.id} className="flex justify-between items-start gap-4">
-                              <div className="flex-1">
-                                <span className="font-bold text-stone-100">{item.quantity}x</span>
-                                <span className="ml-2 text-stone-300">{item.expand?.menu_item?.name}</span>
-                                {item.notes && (
-                                  <p className="text-xs text-orange-400 italic mt-0.5">Note: {item.notes}</p>
+                            <li key={item.id} className="flex flex-col gap-2 p-3 rounded-xl bg-stone-900/40 border border-stone-700/50">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-stone-100 text-lg">{item.quantity}x</span>
+                                    <span className="text-stone-300 font-medium">{item.expand?.menu_item?.name}</span>
+                                  </div>
+                                  {item.notes && (
+                                    <p className="text-xs text-orange-400 italic mt-0.5">Note: {item.notes}</p>
+                                  )}
+                                </div>
+                                <Badge 
+                                  variant="outline"
+                                  className={
+                                    item.status === 'ready' ? 'border-green-500 text-green-500 bg-green-500/10' :
+                                    item.status === 'preparing' ? 'border-blue-500 text-blue-500 bg-blue-500/10' :
+                                    'border-stone-500 text-stone-500'
+                                  }
+                                >
+                                  {item.status === 'ready' ? 'Xong' : item.status === 'preparing' ? 'Đang pha' : 'Chờ'}
+                                </Badge>
+                              </div>
+                              
+                              <div className="flex gap-2 mt-1">
+                                {item.status !== 'preparing' && item.status !== 'ready' && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="secondary"
+                                    className="flex-1 h-8 text-xs bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30"
+                                    onClick={() => updateItemStatus(item.id, 'preparing')}
+                                  >
+                                    Pha chế
+                                  </Button>
+                                )}
+                                {item.status === 'preparing' && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="secondary"
+                                    className="flex-1 h-8 text-xs bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30"
+                                    onClick={() => updateItemStatus(item.id, 'ready')}
+                                  >
+                                    Xong món
+                                  </Button>
+                                )}
+                                {item.status === 'ready' && (
+                                  <div className="flex-1 flex items-center justify-center h-8 text-xs text-green-500 font-bold">
+                                    <CheckCircle2 className="w-4 h-4 mr-1" /> Chờ phục vụ
+                                  </div>
                                 )}
                               </div>
                             </li>
