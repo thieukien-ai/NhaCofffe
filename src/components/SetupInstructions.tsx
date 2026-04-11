@@ -97,6 +97,24 @@ export default function SetupInstructions() {
               ))}
             </ul>
           </div>
+
+          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 mt-6">
+            <h4 className="font-bold text-stone-800 mb-2">Tạo dữ liệu giả (Tùy chọn)</h4>
+            <p className="text-sm text-stone-600 mb-4">
+              Nếu bạn đã cấu hình xong và muốn có dữ liệu để xem thử các biểu đồ báo cáo, hãy bấm nút dưới đây.
+            </p>
+            <Button 
+              onClick={async () => {
+                const res = await (pb as any).seedData();
+                if (res.success) toast.success('Đã tạo dữ liệu giả thành công! Hãy tải lại trang.');
+                else toast.error(res.error || 'Lỗi khi tạo dữ liệu');
+              }}
+              variant="outline"
+              className="w-full border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              Tạo dữ liệu giả ngay
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

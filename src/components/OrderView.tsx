@@ -123,6 +123,27 @@ export default function OrderView() {
       
       const order = await pb.collection('orders').create(orderData);
       
+      // Ghi nhận thông tin khách hàng
+      try {
+        const customers = await pb.collection('customers').getFullList();
+        const existingCustomer = customers.find((c: any) => c.name === customerName);
+        
+        if (existingCustomer) {
+          await pb.collection('customers').update(existingCustomer.id, {
+            last_order_date: new Date().toISOString(),
+            total_spent: (existingCustomer.total_spent || 0) + totalAmount
+          });
+        } else {
+          await pb.collection('customers').create({
+            name: customerName,
+            last_order_date: new Date().toISOString(),
+            total_spent: totalAmount
+          });
+        }
+      } catch (e) {
+        console.error('Lỗi ghi nhận khách hàng:', e);
+      }
+      
       await Promise.all(cart.map(i => 
         pb.collection('order_items').create({
           order: order.id,

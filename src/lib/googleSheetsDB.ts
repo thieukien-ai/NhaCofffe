@@ -167,6 +167,17 @@ class GoogleSheetsDB {
     }
   }
 
+  async seedData() {
+    if (!this.apiUrl) return { error: 'API URL missing' };
+    try {
+      const response = await fetch(`${this.apiUrl}?action=seed_data`);
+      return await response.json();
+    } catch (error) {
+      console.error('Seed data error:', error);
+      return { error: 'Failed to seed data' };
+    }
+  }
+
   collection(name: string) {
     return {
       getFullList: async <T>(options: any = {}) => {

@@ -26,9 +26,48 @@ function doGet(e) {
       result[name] = getReadData(name);
     });
     return createResponse(result);
+  } else if (action === 'seed_data') {
+    return generateSeedData();
   }
   
   return createResponse({ error: 'Invalid action' });
+}
+
+function generateSeedData() {
+  // Tạo dữ liệu giả cho Orders, Order Items và Expenses
+  const menuItems = getReadData('menu_items');
+  if (menuItems.length === 0) return createResponse({ error: 'Cần có món ăn trong menu_items trước khi tạo dữ liệu giả' });
+
+  const ordersSheet = getOrCreateSheet('orders');
+  const orderItemsSheet = getOrCreateSheet('order_items');
+  const expensesSheet = getOrCreateSheet('expenses');
+
+  const now = new Date();
+  
+  // Tạo 10 đơn hàng giả
+  for (let i = 0; i < 10; i++) {
+    const orderId = 'order_mock_' + i;
+    const date = new Date(now.getTime() - (Math.random() * 7 * 24 * 60 * 60 * 1000)); // Trong 7 ngày qua
+    const totalAmount = Math.floor(Math.random() * 500000) + 50000;
+    
+    ordersSheet.appendRow([orderId, Math.floor(Math.random() * 10) + 1, 'completed', totalAmount, 'paid', 'Dữ liệu giả', date.toISOString(), date.toISOString()]);
+    
+    // Mỗi đơn hàng có 1-3 món
+    const itemCount = Math.floor(Math.random() * 3) + 1;
+    for (let j = 0; j < itemCount; j++) {
+      const item = menuItems[Math.floor(Math.random() * menuItems.length)];
+      orderItemsSheet.appendRow(['oi_mock_' + i + '_' + j, orderId, item.id, Math.floor(Math.random() * 2) + 1, item.price, 'served', '', date.toISOString(), date.toISOString()]);
+    }
+  }
+
+  // Tạo 5 chi phí giả
+  const expenseTypes = ['Nguyên liệu', 'Điện nước', 'Mặt bằng', 'Khác'];
+  for (let i = 0; i < 5; i++) {
+    const date = new Date(now.getTime() - (Math.random() * 7 * 24 * 60 * 60 * 1000));
+    expensesSheet.appendRow(['exp_mock_' + i, expenseTypes[Math.floor(Math.random() * expenseTypes.length)], Math.floor(Math.random() * 1000000) + 100000, 'Chi phí giả', date.toISOString(), date.toISOString(), date.toISOString()]);
+  }
+
+  return createResponse({ success: true, message: 'Đã tạo dữ liệu giả thành công' });
 }
 
 function doPost(e) {
@@ -160,7 +199,10 @@ function getOrCreateSheet(name) {
       'expenses': ['id', 'type', 'amount', 'description', 'date', 'created', 'updated'],
       'daily_reports': ['id', 'date', 'total_revenue', 'total_expenses', 'total_labor_cost', 'total_ingredient_cost', 'net_profit', 'order_count', 'created', 'updated'],
       'ingredient_imports': ['id', 'name', 'quantity', 'unit', 'price', 'supplier', 'date', 'created', 'updated'],
-      'staff': ['id', 'name', 'phone', 'role', 'salary_rate', 'status', 'created', 'updated']
+      'staff': ['id', 'name', 'phone', 'role', 'salary_rate', 'status', 'created', 'updated'],
+      'staff_details': ['id', 'user_id', 'full_name', 'address', 'phone', 'join_date', 'salary', 'status', 'created', 'updated'],
+      'ingredients': ['id', 'menu_item_id', 'name', 'quantity_needed', 'unit', 'created', 'updated'],
+      'customers': ['id', 'name', 'phone', 'last_order_date', 'total_spent', 'created', 'updated']
     };
     if (defaultHeaders[name]) {
       sheet.appendRow(defaultHeaders[name]);

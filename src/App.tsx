@@ -31,9 +31,13 @@ export default function App() {
     // Diagnostic check for Google Sheets connection
     const checkConnection = async () => {
       const apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
+      
+      // Kiểm tra xem có biến nào bị thiếu tiền tố VITE_ không
+      // Lưu ý: Vite không cho phép truy cập biến không có VITE_ qua import.meta.env
+      // nhưng chúng ta có thể cảnh báo người dùng về việc này.
       if (!apiUrl) {
-        console.error('VITE_GOOGLE_SHEET_API_URL is missing in environment variables.');
-        toast.error('Thiếu cấu hình VITE_GOOGLE_SHEET_API_URL. Vui lòng kiểm tra phần Settings.');
+        console.error('VITE_GOOGLE_SHEET_API_URL is missing.');
+        toast.error('LỖI CẤU HÌNH: Bạn cần đặt tên biến là VITE_GOOGLE_SHEET_API_URL (phải có chữ VITE_ ở đầu) trên Vercel.');
         return;
       }
       
