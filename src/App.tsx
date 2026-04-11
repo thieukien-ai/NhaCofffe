@@ -33,11 +33,15 @@ export default function App() {
         // 1. Check if we already have categories
         const categories = await pb.collection('categories').getFullList();
         if (categories.length > 0) {
-          console.log('Database already seeded.');
-          return;
+          console.log('Database already has categories. Checking for menu items...');
+          const items = await pb.collection('menu_items').getFullList();
+          if (items.length > 0) {
+            console.log('Database already seeded.');
+            return;
+          }
         }
 
-        console.log('Starting automatic seed...');
+        console.log('Starting automatic seed to real database...');
         
         // 2. Create Categories
         const drinkCat = await pb.collection('categories').create({ id: 'cat_drinks', name: 'Đồ uống', icon: 'coffee' });

@@ -225,9 +225,9 @@ export default function OrderView() {
         </header>
 
         {/* Menu Grid */}
-        <main className="flex-1 overflow-hidden flex flex-col p-6">
+        <main className="flex-1 overflow-hidden flex flex-col p-4 sm:p-6">
           {myOrder && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center justify-between">
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-6 h-6 text-green-600" />
                 <div>
@@ -387,43 +387,45 @@ export default function OrderView() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 relative">
-          <ScrollArea className="absolute inset-0 p-6">
-            <AnimatePresence mode="popLayout">
-            {cart.map(({ item, quantity }) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group border border-stone-100"
-              >
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
-                  <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!myOrder && (
-                    <>
-                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                      <span className="text-sm font-bold w-4 text-center">{quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </>
-                  )}
-                  {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
-                </div>
-              </motion.div>
-            ))}
-            {cart.length === 0 && (
-              <div className="text-center py-12 text-stone-400">
-                <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">Giỏ hàng trống</p>
-              </div>
-            )}
-          </AnimatePresence>
-        </ScrollArea>
-      </div>
+        <div className="flex-1 min-h-0 relative bg-white">
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              <AnimatePresence mode="popLayout">
+                {cart.map(({ item, quantity }) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group border border-stone-100"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
+                      <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!myOrder && (
+                        <>
+                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
+                          <span className="text-sm font-bold w-4 text-center">{quantity}</span>
+                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
+                        </>
+                      )}
+                      {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
+                    </div>
+                  </motion.div>
+                ))}
+                {cart.length === 0 && (
+                  <div className="text-center py-12 text-stone-400">
+                    <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                    <p className="text-sm">Giỏ hàng trống</p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+          </ScrollArea>
+        </div>
 
         <div className="p-6 bg-white border-t border-stone-200 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-center font-bold text-lg text-stone-800">
