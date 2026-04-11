@@ -57,9 +57,11 @@ export default function OrderView() {
       }
       
       // Filter out duplicates by ID just in case
-      const uniqueItems = itemsData.filter((item, index, self) =>
-        index === self.findIndex((t) => t.id === item.id)
-      );
+      const uniqueItems = Array.isArray(itemsData) 
+        ? itemsData.filter((item, index, self) =>
+            index === self.findIndex((t) => t.id === item.id)
+          )
+        : [];
       
       setMenuItems(uniqueItems);
       setCategories(catsData);

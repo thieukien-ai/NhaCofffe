@@ -47,12 +47,18 @@ class GoogleSheetsDB {
       if (action === 'read') {
         const response = await fetch(`${this.apiUrl}?action=read&sheet=${sheet}`);
         const data = await response.json();
+        
+        if (data.error || !Array.isArray(data)) {
+          console.error(`API Error reading sheet ${sheet}:`, data.error || 'Response is not an array');
+          return this.localStorageRequest(action, sheet, body);
+        }
+
         this.cache[sheet] = { data, timestamp: Date.now() };
         return data;
       } else {
         // Invalidate cache on write
         delete this.cache[sheet];
-        if (sheet === 'order_items') delete this.cache['orders']; // Invalidate related
+        if (sheet === 'order_items') delete this.cache['orders'];
         if (sheet === 'orders') delete this.cache['order_items'];
 
         const response = await fetch(this.apiUrl, {
@@ -116,27 +122,38 @@ class GoogleSheetsDB {
   }
 
   async batchRead(sheets: string[]) {
+    if (!this.apiUrl) {
+      const result: any = {};
+      for (const sheet of sheets) {
+        result[sheet] = await this.collection(sheet).getFullList();
+      }
+      return result;
+    }
+
     try {
-      const url = `${this.apiUrl}?action=batch_read&sheets=${sheets.join(',')}`;
-      const response = await fetch(url);
+      const response = await fetch(`${this.apiUrl}?action=batch_read&sheets=${sheets.join(',')}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       
+      if (data.error) throw new Error(data.error);
+
       // Update cache for each sheet
       Object.keys(data).forEach(sheet => {
-        this.cache[sheet] = {
-          data: data[sheet],
-          timestamp: Date.now()
-        };
+        if (Array.isArray(data[sheet])) {
+          this.cache[sheet] = {
+            data: data[sheet],
+            timestamp: Date.now()
+          };
+        }
       });
       
       return data;
     } catch (error) {
       console.error('Batch read error:', error);
-      // Fallback to individual reads or localStorage if needed
       const result: any = {};
       for (const sheet of sheets) {
-        result[sheet] = await this.collection(sheet).getFullList();
+        const list = await this.collection(sheet).getFullList();
+        result[sheet] = Array.isArray(list) ? list : [];
       }
       return result;
     }
