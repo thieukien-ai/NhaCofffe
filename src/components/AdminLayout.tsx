@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -41,12 +42,21 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div className="flex h-screen bg-stone-50 overflow-hidden">
+    <div className="flex h-screen bg-stone-50 overflow-hidden relative">
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-stone-900/50 z-50 lg:hidden backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-stone-900 text-stone-300 transition-all duration-300 flex flex-col shrink-0",
-          collapsed ? "w-20" : "w-64"
+          "bg-stone-900 text-stone-300 transition-all duration-300 flex flex-col shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:translate-x-0",
+          collapsed ? "w-20" : "w-64",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0 gap-3">
@@ -103,10 +113,16 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-8 shrink-0">
+      <main className="flex-1 flex flex-col overflow-hidden w-full">
+        <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold text-stone-800">
+            <button 
+              onClick={() => setMobileOpen(true)}
+              className="p-2 hover:bg-stone-100 rounded-lg lg:hidden"
+            >
+              <MenuIcon className="w-6 h-6 text-stone-600" />
+            </button>
+            <h2 className="text-lg font-bold text-stone-800 truncate">
               {navItems.find(i => i.path === location.pathname)?.label || 'Dashboard'}
             </h2>
           </div>
@@ -121,7 +137,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
           <Outlet />
         </div>
       </main>

@@ -99,14 +99,14 @@ export default function BaristaView() {
   };
 
   return (
-    <div className="flex h-screen bg-stone-900 text-stone-100 overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-20 bg-stone-950 flex flex-col items-center py-6 space-y-8 text-stone-500">
+    <div className="flex flex-col lg:flex-row h-screen bg-stone-900 text-stone-100 overflow-hidden">
+      {/* Sidebar - Desktop: Side, Mobile: Bottom */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-950 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-stone-500 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.3)] lg:shadow-none">
         <button 
           onClick={() => navigate('/order')}
           className="p-2 bg-stone-800 rounded-xl text-orange-400 hover:text-orange-300 transition-colors"
         >
-          <Home className="w-8 h-8" />
+          <Home className="w-6 h-6 lg:w-8 lg:h-8" />
         </button>
         <button 
           onClick={() => navigate('/order')}
@@ -117,7 +117,7 @@ export default function BaristaView() {
         <button className="p-3 bg-stone-800 rounded-xl transition-colors text-stone-50">
           <ClipboardList className="w-6 h-6" />
         </button>
-        <div className="mt-auto">
+        <div className="lg:mt-auto">
           <button 
             onClick={handleLogout}
             className="p-3 hover:bg-red-900/30 hover:text-red-400 rounded-xl transition-colors"
@@ -125,10 +125,10 @@ export default function BaristaView() {
             <LogOut className="w-6 h-6" />
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
         <header className="h-16 bg-stone-950 border-b border-stone-800 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold">Khu vực Pha chế</h1>
@@ -141,9 +141,9 @@ export default function BaristaView() {
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-hidden">
+        <main className="flex-1 p-4 sm:p-8 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 pb-8">
               <AnimatePresence mode="popLayout">
                 {orders.map((order) => (
                   <motion.div

@@ -201,15 +201,15 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
         {/* Revenue Chart */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-stone-800">Xu hướng doanh thu (7 ngày)</CardTitle>
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-bold text-stone-800">Xu hướng doanh thu (7 ngày)</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[250px] sm:h-[300px] p-2 sm:p-6">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.1}/>
@@ -229,13 +229,13 @@ export default function Dashboard() {
         </Card>
 
         {/* Top Items Chart */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-stone-800">Sản phẩm bán chạy</CardTitle>
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg font-bold text-stone-800">Sản phẩm bán chạy</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[250px] sm:h-[300px] p-2 sm:p-6">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topItems} layout="vertical">
+              <BarChart data={topItems} layout="vertical" margin={{ left: -10, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f1f1" />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#444', fontSize: 12}} width={100} />

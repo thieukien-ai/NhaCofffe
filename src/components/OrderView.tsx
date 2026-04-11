@@ -142,14 +142,14 @@ export default function OrderView() {
   }, [search, activeCategory]);
 
   return (
-    <div className="flex h-screen bg-secondary overflow-hidden">
-      {/* Sidebar / Navigation */}
-      <div className="w-20 bg-primary flex flex-col items-center py-6 space-y-8 text-white/60">
+    <div className="flex flex-col lg:flex-row h-screen bg-secondary overflow-hidden">
+      {/* Sidebar / Navigation - Desktop: Side, Mobile: Bottom */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-primary flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-white/60 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none">
         <button 
           onClick={() => navigate('/')}
           className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
         >
-          <Home className="w-8 h-8" />
+          <Home className="w-6 h-6 lg:w-8 lg:h-8" />
         </button>
         <button 
           onClick={() => setShowCart(!showCart)}
@@ -181,7 +181,7 @@ export default function OrderView() {
             <TrendingUp className="w-6 h-6" />
           </button>
         )}
-        <div className="mt-auto">
+        <div className="lg:mt-auto">
           {user ? (
             <button 
               onClick={handleLogout}
@@ -198,10 +198,10 @@ export default function OrderView() {
             </button>
           )}
         </div>
-      </div>
+      </nav>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
         {/* Header */}
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-stone-100 flex items-center justify-between px-8 shrink-0">
           <h1 className="text-2xl font-serif text-primary">Thực đơn</h1>
@@ -257,8 +257,8 @@ export default function OrderView() {
             </Tabs>
           </div>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
+          <ScrollArea className="flex-1 -mx-4 sm:-mx-6 px-4 sm:px-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-6">
               {paginatedItems.map(item => (
                 <motion.div
                   key={item.id}
