@@ -27,8 +27,31 @@ export default function App() {
     }
     setLoading(false);
 
-    // Automatic Seeding Logic for Google Sheets (or LocalStorage fallback)
-    // No more auto-seeding. Load data directly from Google Sheets.
+    // Diagnostic check for Google Sheets connection
+    const checkConnection = async () => {
+      const apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
+      if (!apiUrl) {
+        console.error('VITE_GOOGLE_SHEET_API_URL is missing in environment variables.');
+        toast.error('Thiếu cấu hình VITE_GOOGLE_SHEET_API_URL. Vui lòng kiểm tra phần Settings.');
+        return;
+      }
+      
+      try {
+        console.log('Testing connection to Google Sheets API...');
+        const response = await fetch(`${apiUrl}?action=read&sheet=users`);
+        if (response.ok) {
+          console.log('Successfully connected to Google Sheets API.');
+        } else {
+          console.error('Google Sheets API returned an error status:', response.status);
+          toast.error('Không thể kết nối với Google Sheets. Vui lòng kiểm tra lại URL Apps Script.');
+        }
+      } catch (error) {
+        console.error('Failed to fetch from Google Sheets API:', error);
+        toast.error('Lỗi kết nối API Google Sheets. Đảm bảo bạn đã Deploy Apps Script là "Anyone".');
+      }
+    };
+
+    checkConnection();
 
     // Listen for auth changes
     const unsubscribe = pb.authStore.onChange((token, model) => {

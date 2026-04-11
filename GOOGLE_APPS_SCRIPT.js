@@ -159,7 +159,8 @@ function getOrCreateSheet(name) {
       'order_items': ['id', 'order', 'menu_item', 'quantity', 'price_at_order', 'status', 'notes', 'created', 'updated'],
       'expenses': ['id', 'type', 'amount', 'description', 'date', 'created', 'updated'],
       'daily_reports': ['id', 'date', 'total_revenue', 'total_expenses', 'total_labor_cost', 'total_ingredient_cost', 'net_profit', 'order_count', 'created', 'updated'],
-      'ingredient_imports': ['id', 'name', 'quantity', 'unit', 'price', 'supplier', 'date', 'created', 'updated']
+      'ingredient_imports': ['id', 'name', 'quantity', 'unit', 'price', 'supplier', 'date', 'created', 'updated'],
+      'staff': ['id', 'name', 'phone', 'role', 'salary_rate', 'status', 'created', 'updated']
     };
     if (defaultHeaders[name]) {
       sheet.appendRow(defaultHeaders[name]);
