@@ -19,6 +19,13 @@ function doGet(e) {
   
   if (action === 'read') {
     return readData(sheetName);
+  } else if (action === 'batch_read') {
+    const sheets = e.parameter.sheets ? e.parameter.sheets.split(',') : [];
+    const result = {};
+    sheets.forEach(name => {
+      result[name] = getReadData(name);
+    });
+    return createResponse(result);
   }
   
   return createResponse({ error: 'Invalid action' });
@@ -42,12 +49,14 @@ function doPost(e) {
   return createResponse({ error: 'Invalid action' });
 }
 
-function readData(sheetName) {
+function getReadData(sheetName) {
   const sheet = getOrCreateSheet(sheetName);
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
   const data = [];
   
+  if (values.length <= 1) return [];
+
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     const obj = {};
@@ -61,8 +70,11 @@ function readData(sheetName) {
     });
     data.push(obj);
   }
-  
-  return createResponse(data);
+  return data;
+}
+
+function readData(sheetName) {
+  return createResponse(getReadData(sheetName));
 }
 
 function createData(sheetName, record) {

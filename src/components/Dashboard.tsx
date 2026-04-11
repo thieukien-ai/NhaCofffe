@@ -58,41 +58,59 @@ export default function Dashboard() {
       const today = startOfDay(new Date());
       const endToday = endOfDay(new Date());
 
-      // 1. Fetch Today's Orders & Items
-      const todayOrders = await pb.collection('orders').getFullList({
-        filter: `created >= "${today.toISOString()}" && created <= "${endToday.toISOString()}" && status = "completed"`,
-        expand: 'order_items_via_order'
-      });
+      // Use batchRead for faster initial load
+      let todayOrders: any[] = [];
+      let orderItems: any[] = [];
+      let todayExpenses: any[] = [];
+
+      if (typeof (pb as any).batchRead === 'function') {
+        const batch = await (pb as any).batchRead(['orders', 'order_items', 'expenses']);
+        todayOrders = (batch.orders || []).filter((o: any) => 
+          new Date(o.created) >= today && new Date(o.created) <= endToday && o.status === 'completed'
+        );
+        orderItems = batch.order_items || [];
+        todayExpenses = (batch.expenses || []).filter((e: any) => 
+          new Date(e.date) >= today && new Date(e.date) <= endToday
+        );
+      } else {
+        const [orders, items, expenses] = await Promise.all([
+          pb.collection('orders').getFullList({
+            filter: `created >= "${today.toISOString()}" && created <= "${endToday.toISOString()}" && status = "completed"`,
+            expand: 'order_items_via_order'
+          }),
+          pb.collection('order_items').getFullList({
+            expand: 'menu_item'
+          }),
+          pb.collection('expenses').getFullList({
+            filter: `date >= "${today.toISOString()}" && date <= "${endToday.toISOString()}"`
+          })
+        ]);
+        todayOrders = orders;
+        orderItems = items;
+        todayExpenses = expenses;
+      }
 
       let revenue: number = 0;
       let ingredientCost: number = 0;
-
-      // Fetch all order items for today's orders
-      const orderItems = await pb.collection('order_items').getFullList({
-        expand: 'menu_item'
-      });
 
       todayOrders.forEach((o: any) => {
         revenue += (o.total_amount || 0);
         const items = orderItems.filter((oi: any) => oi.order === o.id);
         items.forEach((oi: any) => {
+          // Note: In batchRead, expansion might not be pre-calculated if using the simple GS implementation
+          // We might need to handle manual expansion or ensure the GS script handles it
           const cost = (oi.expand?.menu_item?.cost_price || 0) * oi.quantity;
           ingredientCost += cost;
         });
       });
 
-      // 2. Fetch Today's Expenses
-      const todayExpenses = await pb.collection('expenses').getFullList({
-        filter: `date >= "${today.toISOString()}" && date <= "${endToday.toISOString()}"`
-      });
-
-      const expenses: number = (todayExpenses as any[]).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+      const expensesTotal: number = (todayExpenses as any[]).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
       setStats({
         revenue,
-        expenses,
+        expenses: expensesTotal,
         ingredientCost,
-        profit: revenue - expenses - ingredientCost,
+        profit: revenue - expensesTotal - ingredientCost,
         orders: todayOrders.length
       });
 

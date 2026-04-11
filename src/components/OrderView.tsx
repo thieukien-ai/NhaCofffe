@@ -39,10 +39,22 @@ export default function OrderView() {
 
   const fetchData = async () => {
     try {
-      const [itemsData, catsData] = await Promise.all([
-        pb.collection('menu_items').getFullList<MenuItem>({ sort: 'name', expand: 'category' }),
-        pb.collection('categories').getFullList<Category>({ sort: 'name' })
-      ]);
+      // Use batchRead for faster initial load if supported by the DB service
+      let itemsData: MenuItem[] = [];
+      let catsData: Category[] = [];
+
+      if (typeof (pb as any).batchRead === 'function') {
+        const batch = await (pb as any).batchRead(['menu_items', 'categories']);
+        itemsData = batch.menu_items || [];
+        catsData = batch.categories || [];
+      } else {
+        const [items, cats] = await Promise.all([
+          pb.collection('menu_items').getFullList<MenuItem>({ sort: 'name', expand: 'category' }),
+          pb.collection('categories').getFullList<Category>({ sort: 'name' })
+        ]);
+        itemsData = items;
+        catsData = cats;
+      }
       
       // Filter out duplicates by ID just in case
       const uniqueItems = itemsData.filter((item, index, self) =>

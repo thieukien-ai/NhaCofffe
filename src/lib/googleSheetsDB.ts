@@ -115,6 +115,33 @@ class GoogleSheetsDB {
     return [];
   }
 
+  async batchRead(sheets: string[]) {
+    try {
+      const url = `${this.apiUrl}?action=batch_read&sheets=${sheets.join(',')}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      
+      // Update cache for each sheet
+      Object.keys(data).forEach(sheet => {
+        this.cache[sheet] = {
+          data: data[sheet],
+          timestamp: Date.now()
+        };
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('Batch read error:', error);
+      // Fallback to individual reads or localStorage if needed
+      const result: any = {};
+      for (const sheet of sheets) {
+        result[sheet] = await this.collection(sheet).getFullList();
+      }
+      return result;
+    }
+  }
+
   collection(name: string) {
     return {
       getFullList: async <T>(options: any = {}) => {
