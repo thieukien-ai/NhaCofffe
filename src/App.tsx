@@ -42,8 +42,12 @@ export default function App() {
         // 2. Create Categories
         const drinkCat = await pb.collection('categories').create({ id: 'cat_drinks', name: 'Đồ uống', icon: 'coffee' });
         const snackCat = await pb.collection('categories').create({ id: 'cat_snacks', name: 'Đồ ăn vặt', icon: 'cookie' });
+        const mainCat = await pb.collection('categories').create({ id: 'cat_main', name: 'Món chính', icon: 'utensils' });
+        const sideCat = await pb.collection('categories').create({ id: 'cat_side', name: 'Món kèm', icon: 'plus-circle' });
+        const starterCat = await pb.collection('categories').create({ id: 'cat_starter', name: 'Khai vị', icon: 'soup' });
 
         // 3. Create SA User
+        // ... (existing code)
         try {
           await pb.collection('users').create({
             id: 'user_sa',
@@ -57,39 +61,29 @@ export default function App() {
           console.log('SA user might already exist.');
         }
 
-        // 4. Create 50 Drinks
-        const drinkNames = ['Cà phê đen', 'Cà phê sữa', 'Bạc xỉu', 'Trà đào', 'Trà vải', 'Sữa chua', 'Sinh tố bơ', 'Nước ép cam', 'Trà sữa', 'Cacao'];
-        for (let i = 0; i < 50; i++) {
-          const name = drinkNames[i % drinkNames.length] + ` ${i + 1}`;
-          const price = Math.floor(Math.random() * (50 - 15 + 1) + 15) * 1000;
-          const cost_price = Math.floor(price * 0.4); // 40% cost
-          await pb.collection('menu_items').create({
-            id: `item_drink_${i}`,
-            name: name,
-            description: `Mô tả cho ${name}`,
-            price: price,
-            cost_price: cost_price,
-            category: drinkCat.id,
-            available: true
-          });
-        }
+        // 4. Create Items for each category
+        const seedCategory = async (catId: string, names: string[], prefix: string, count: number) => {
+          for (let i = 0; i < count; i++) {
+            const name = names[i % names.length] + ` ${i + 1}`;
+            const price = Math.floor(Math.random() * (150 - 20 + 1) + 20) * 1000;
+            const cost_price = Math.floor(price * 0.4);
+            await pb.collection('menu_items').create({
+              id: `item_${prefix}_${i}`,
+              name: name,
+              description: `Mô tả cho ${name}`,
+              price: price,
+              cost_price: cost_price,
+              category: catId,
+              available: true
+            });
+          }
+        };
 
-        // 5. Create 20 Snacks
-        const snackNames = ['Hướng dương', 'Hạt điều', 'Khô gà', 'Bánh tráng', 'Cá viên chiên', 'Phô mai que'];
-        for (let i = 0; i < 20; i++) {
-          const name = snackNames[i % snackNames.length] + ` ${i + 1}`;
-          const price = Math.floor(Math.random() * (50 - 15 + 1) + 15) * 1000;
-          const cost_price = Math.floor(price * 0.5); // 50% cost
-          await pb.collection('menu_items').create({
-            id: `item_snack_${i}`,
-            name: name,
-            description: `Mô tả cho ${name}`,
-            price: price,
-            cost_price: cost_price,
-            category: snackCat.id,
-            available: true
-          });
-        }
+        await seedCategory(drinkCat.id, ['Cà phê đen', 'Cà phê sữa', 'Bạc xỉu', 'Trà đào', 'Trà vải'], 'drink', 30);
+        await seedCategory(snackCat.id, ['Hướng dương', 'Hạt điều', 'Khô gà', 'Bánh tráng'], 'snack', 20);
+        await seedCategory(mainCat.id, ['Cơm chiên', 'Mì xào', 'Bún bò', 'Phở bò'], 'main', 15);
+        await seedCategory(sideCat.id, ['Trứng ốp la', 'Xúc xích', 'Chả giò'], 'side', 10);
+        await seedCategory(starterCat.id, ['Súp cua', 'Gỏi cuốn', 'Khoai tây chiên'], 'starter', 10);
 
         console.log('Google Sheets automatic seed completed!');
 

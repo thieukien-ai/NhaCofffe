@@ -23,7 +23,7 @@ export default function OrderView() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
-  const [showCart, setShowCart] = useState(false);
+  const [showCart, setShowCart] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const navigate = useNavigate();
@@ -244,16 +244,18 @@ export default function OrderView() {
             </div>
           )}
 
-          <Tabs defaultValue="all" className="w-full mb-8" onValueChange={setActiveCategory}>
-            <TabsList className="bg-secondary p-1.5 rounded-2xl h-auto">
-              <TabsTrigger value="all" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Tất cả</TabsTrigger>
-              {categories.map(cat => (
-                <TabsTrigger key={cat.id} value={cat.id} className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-                  {cat.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className="w-full mb-8 overflow-x-auto pb-2 scrollbar-hide">
+            <Tabs defaultValue="all" className="w-full" onValueChange={setActiveCategory}>
+              <TabsList className="bg-secondary p-1.5 rounded-2xl h-auto inline-flex whitespace-nowrap">
+                <TabsTrigger value="all" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Tất cả</TabsTrigger>
+                {categories.map(cat => (
+                  <TabsTrigger key={cat.id} value={cat.id} className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+                    {cat.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
 
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
@@ -325,8 +327,8 @@ export default function OrderView() {
       </div>
 
       {/* Cart Sidebar */}
-      <aside className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-stone-200 flex flex-col shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0 ${showCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
-        <div className="p-6 border-b border-stone-200 flex items-center justify-between">
+      <aside className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-stone-200 flex flex-col shrink-0 transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:translate-x-0 ${!showCart ? 'lg:hidden' : 'lg:flex'}`}>
+        <div className="p-6 border-b border-stone-200 flex items-center justify-between shrink-0 bg-white">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
             Giỏ hàng
@@ -335,13 +337,13 @@ export default function OrderView() {
             <Badge variant="secondary" className="bg-stone-100 text-stone-600">
               {cart.reduce((s, i) => s + i.quantity, 0)} món
             </Badge>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setShowCart(false)}>
+            <Button variant="ghost" size="icon" onClick={() => setShowCart(false)}>
               <Minus className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="p-6 border-b border-stone-200 space-y-4">
+        <div className="p-6 border-b border-stone-200 space-y-4 shrink-0 bg-white">
           <div className="space-y-2">
             <Label htmlFor="customerName" className="flex items-center gap-2">
               <UserIcon className="w-4 h-4" /> Tên khách hàng
@@ -369,44 +371,42 @@ export default function OrderView() {
         </div>
 
         <ScrollArea className="flex-1 p-6">
-          <div className="max-h-[400px]">
-            <AnimatePresence mode="popLayout">
-              {cart.map(({ item, quantity }) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group border border-stone-100"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
-                    <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!myOrder && (
-                      <>
-                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                        <span className="text-sm font-bold w-4 text-center">{quantity}</span>
-                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
-                      </>
-                    )}
-                    {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
-                  </div>
-                </motion.div>
-              ))}
-              {cart.length === 0 && (
-                <div className="text-center py-12 text-stone-400">
-                  <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                  <p className="text-sm">Giỏ hàng trống</p>
+          <AnimatePresence mode="popLayout">
+            {cart.map(({ item, quantity }) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group border border-stone-100"
+              >
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
+                  <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
                 </div>
-              )}
-            </AnimatePresence>
-          </div>
+                <div className="flex items-center gap-2">
+                  {!myOrder && (
+                    <>
+                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
+                      <span className="text-sm font-bold w-4 text-center">{quantity}</span>
+                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
+                    </>
+                  )}
+                  {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
+                </div>
+              </motion.div>
+            ))}
+            {cart.length === 0 && (
+              <div className="text-center py-12 text-stone-400">
+                <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                <p className="text-sm">Giỏ hàng trống</p>
+              </div>
+            )}
+          </AnimatePresence>
         </ScrollArea>
 
-        <div className="p-6 bg-stone-50 border-t border-stone-200 space-y-4">
+        <div className="p-6 bg-white border-t border-stone-200 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-center font-bold text-lg text-stone-800">
             <span>Tổng cộng</span>
             <span>{totalAmount.toLocaleString('vi-VN')}đ</span>
