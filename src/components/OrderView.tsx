@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp, Home, User } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp, Home, User, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,7 @@ export default function OrderView() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
   const user = pb.authStore.model;
   const [showCart, setShowCart] = useState(!user);
@@ -182,6 +183,22 @@ export default function OrderView() {
     // Reset scroll or other logic if needed
   }, [search, activeCategory]);
 
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const synced = await (pb as any).sync();
+      if (synced) {
+        toast.success('Đã đồng bộ dữ liệu thành công!');
+      } else {
+        toast.info('Dữ liệu đã được đồng bộ.');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi đồng bộ dữ liệu');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-secondary overflow-hidden">
       {/* Sidebar / Navigation - Desktop: Side, Mobile: Bottom */}
@@ -245,7 +262,18 @@ export default function OrderView() {
       <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
         {/* Header */}
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-stone-100 flex items-center justify-between px-8 shrink-0">
-          <h1 className="text-2xl font-serif text-primary">Thực đơn</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-serif text-primary">Thực đơn</h1>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSync}
+              className={isSyncing ? 'animate-spin' : ''}
+              title="Đồng bộ ngay"
+            >
+              <RefreshCw className="w-5 h-5 text-stone-400" />
+            </Button>
+          </div>
           <div className="flex items-center space-x-4 w-1/2 max-w-md">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />

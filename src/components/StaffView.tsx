@@ -3,9 +3,10 @@ import pb from '@/lib/pocketbase';
 import { toast } from 'sonner';
 import { Order } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Coffee, Clock, LogOut, ShoppingCart, Home, User, CheckCircle2 } from 'lucide-react';
+import { Coffee, Clock, LogOut, ShoppingCart, Home, User, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfDay } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 export default function StaffView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,6 +50,22 @@ export default function StaffView() {
   const handleLogout = () => {
     pb.authStore.clear();
     navigate('/login');
+  };
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const synced = await (pb as any).sync();
+      if (synced) {
+        toast.success('Đã đồng bộ dữ liệu thành công!');
+      } else {
+        toast.info('Dữ liệu đã được đồng bộ.');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi đồng bộ dữ liệu');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const updateItemStatus = async (itemId: string, newStatus: string) => {
@@ -105,6 +123,15 @@ export default function StaffView() {
         <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-stone-800">Theo dõi đơn hàng (Nhân viên)</h1>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSync}
+              className={isSyncing ? 'animate-spin' : ''}
+              title="Đồng bộ ngay"
+            >
+              <RefreshCw className="w-4 h-4 text-stone-400" />
+            </Button>
             <Badge variant="outline" className="border-stone-200 text-stone-600">
               {orders.length} Đơn hôm nay
             </Badge>

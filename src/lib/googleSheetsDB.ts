@@ -5,7 +5,7 @@ class GoogleSheetsDB {
   private apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
   private authListeners: ((token: string, model: any) => void)[] = [];
   private cache: Record<string, { data: any, timestamp: number }> = {};
-  private CACHE_TTL = 300000; // 5 minutes
+  private CACHE_TTL = 60000; // 60 seconds cache
   private writeQueue: { action: string, sheet: string, body: any, id: string }[] = [];
   private isSyncing = false;
 
@@ -108,6 +108,14 @@ class GoogleSheetsDB {
   private addToWriteQueue(action: string, sheet: string, body: any, id: string) {
     this.writeQueue.push({ action, sheet, body, id });
     this.processQueue();
+  }
+
+  async sync() {
+    if (this.writeQueue.length > 0) {
+      await this.processQueue();
+      return true;
+    }
+    return false;
   }
 
   private async processQueue() {
@@ -352,11 +360,11 @@ class GoogleSheetsDB {
       },
 
       subscribe: (topic: string, callback: (e: any) => void, options?: any) => {
-        // Polling fallback for real-time
         const interval = setInterval(async () => {
-          // This is a very simplified mock of real-time
-          // In a real app, you'd check for changes
-        }, 5000);
+          // Clear cache to force fresh fetch
+          delete this.cache[name];
+          callback({ action: 'update', record: {} });
+        }, 30000); // Poll every 30 seconds
         return () => clearInterval(interval);
       },
 

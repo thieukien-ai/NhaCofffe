@@ -61,7 +61,7 @@ export default function AdminLayout() {
       >
         <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0 gap-3">
           <button 
-            onClick={() => navigate('/order')}
+            onClick={() => window.location.href = '/'}
             className="p-1.5 bg-stone-800 rounded-lg text-orange-400 hover:text-orange-300 transition-colors"
           >
             <Home className="w-5 h-5" />

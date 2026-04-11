@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart, Home } from 'lucide-react';
+import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart, Home, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 export default function BaristaView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,6 +39,22 @@ export default function BaristaView() {
       pb.collection('orders').unsubscribe('*');
     };
   }, []);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const synced = await (pb as any).sync();
+      if (synced) {
+        toast.success('Đã đồng bộ dữ liệu thành công!');
+      } else {
+        toast.info('Dữ liệu đã được đồng bộ.');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi đồng bộ dữ liệu');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -103,13 +120,13 @@ export default function BaristaView() {
       {/* Sidebar - Desktop: Side, Mobile: Bottom */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-950 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-stone-500 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.3)] lg:shadow-none">
         <button 
-          onClick={() => navigate('/order')}
+          onClick={() => window.location.href = '/'}
           className="p-2 bg-stone-800 rounded-xl text-orange-400 hover:text-orange-300 transition-colors"
         >
           <Home className="w-6 h-6 lg:w-8 lg:h-8" />
         </button>
         <button 
-          onClick={() => navigate('/order')}
+          onClick={() => window.location.href = '/'}
           className="p-3 hover:bg-stone-800 rounded-xl transition-colors"
         >
           <ShoppingCart className="w-6 h-6" />
@@ -132,6 +149,15 @@ export default function BaristaView() {
         <header className="h-16 bg-stone-950 border-b border-stone-800 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold">Khu vực Pha chế</h1>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSync}
+              className={isSyncing ? 'animate-spin' : ''}
+              title="Đồng bộ ngay"
+            >
+              <RefreshCw className="w-4 h-4 text-stone-400" />
+            </Button>
             <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10">
               {orders.length} Đơn đang chờ
             </Badge>
