@@ -14,23 +14,31 @@
 const SPREADSHEET = SpreadsheetApp.getActiveSpreadsheet();
 
 function doGet(e) {
-  const action = e.parameter.action;
-  const sheetName = e.parameter.sheet;
-  
-  if (action === 'read') {
-    return readData(sheetName);
-  } else if (action === 'batch_read') {
-    const sheets = e.parameter.sheets ? e.parameter.sheets.split(',') : [];
-    const result = {};
-    sheets.forEach(name => {
-      result[name] = getReadData(name);
-    });
-    return createResponse(result);
-  } else if (action === 'seed_data') {
-    return generateSeedData();
+  try {
+    if (!SPREADSHEET) {
+      throw new Error("Không thể tìm thấy Spreadsheet. Nếu bạn tạo Script rời, hãy dùng SpreadsheetApp.openById('ID_CUA_SHEET') thay vì getActiveSpreadsheet().");
+    }
+    
+    const action = e.parameter.action;
+    const sheetName = e.parameter.sheet;
+    
+    if (action === 'read') {
+      return readData(sheetName);
+    } else if (action === 'batch_read') {
+      const sheets = e.parameter.sheets ? e.parameter.sheets.split(',') : [];
+      const result = {};
+      sheets.forEach(name => {
+        result[name] = getReadData(name);
+      });
+      return createResponse(result);
+    } else if (action === 'seed_data') {
+      return generateSeedData();
+    }
+    
+    return createResponse({ error: 'Invalid action: ' + action });
+  } catch (error) {
+    return createResponse({ error: error.toString(), stack: error.stack }, 500);
   }
-  
-  return createResponse({ error: 'Invalid action' });
 }
 
 function generateSeedData() {
@@ -71,21 +79,27 @@ function generateSeedData() {
 }
 
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const action = data.action;
-  const sheetName = data.sheet;
-  
-  if (action === 'create') {
-    return createData(sheetName, data.record);
-  } else if (action === 'update') {
-    return updateData(sheetName, data.id, data.record);
-  } else if (action === 'delete') {
-    return deleteData(sheetName, data.id);
-  } else if (action === 'auth') {
-    return handleAuth(data.identity, data.password);
+  try {
+    if (!SPREADSHEET) throw new Error("Spreadsheet not found");
+    
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    const sheetName = data.sheet;
+    
+    if (action === 'create') {
+      return createData(sheetName, data.record);
+    } else if (action === 'update') {
+      return updateData(sheetName, data.id, data.record);
+    } else if (action === 'delete') {
+      return deleteData(sheetName, data.id);
+    } else if (action === 'auth') {
+      return handleAuth(data.identity, data.password);
+    }
+    
+    return createResponse({ error: 'Invalid action' });
+  } catch (error) {
+    return createResponse({ error: error.toString() }, 500);
   }
-  
-  return createResponse({ error: 'Invalid action' });
 }
 
 function getReadData(sheetName) {

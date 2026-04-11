@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import pb from '@/lib/pocketbase';
+import { toast } from 'sonner';
 import { Order } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,17 @@ export default function StaffView() {
     navigate('/login');
   };
 
+  const updateItemStatus = async (itemId: string, newStatus: string) => {
+    try {
+      await pb.collection('order_items').update(itemId, { status: newStatus });
+      toast.success(`Đã cập nhật trạng thái: ${newStatus === 'preparing' ? 'Đang pha' : 'Xong'}`);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Lỗi khi cập nhật trạng thái');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending': return <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/50">Chờ xử lý</Badge>;
@@ -64,13 +76,13 @@ export default function StaffView() {
       {/* Sidebar - Desktop: Side, Mobile: Bottom */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-900 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-stone-400 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none">
         <button 
-          onClick={() => navigate('/order')}
+          onClick={() => window.location.href = '/'}
           className="p-2 bg-stone-800 rounded-xl text-orange-400 hover:text-orange-300 transition-colors"
         >
           <Home className="w-6 h-6 lg:w-8 lg:h-8" />
         </button>
         <button 
-          onClick={() => navigate('/order')}
+          onClick={() => window.location.href = '/'}
           className="p-3 hover:bg-stone-800 rounded-xl transition-colors"
         >
           <ShoppingCart className="w-6 h-6" />
@@ -125,29 +137,44 @@ export default function StaffView() {
                         </div>
                         {getStatusBadge(order.status)}
                       </CardHeader>
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
+                      <CardContent className="p-3">
+                        <div className="space-y-2">
                           {order.expand?.order_items_via_order?.map((item) => (
-                            <div key={item.id} className="flex justify-between items-start gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-stone-800">{item.quantity}x</span>
-                                  <span className="text-stone-600 truncate text-sm">{item.expand?.menu_item?.name}</span>
+                            <div key={item.id} className="flex flex-col gap-1 p-2 bg-stone-100/50 rounded-lg border border-stone-100">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-stone-800 text-sm">{item.quantity}x</span>
+                                    <span className="text-stone-700 truncate text-xs font-medium">{item.expand?.menu_item?.name}</span>
+                                  </div>
+                                  {item.notes && (
+                                    <p className="text-[9px] text-orange-500 italic mt-0.5 truncate">Note: {item.notes}</p>
+                                  )}
                                 </div>
-                                {item.notes && (
-                                  <p className="text-[10px] text-orange-500 italic mt-0.5 truncate">Note: {item.notes}</p>
-                                )}
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[9px] px-1 py-0 h-4 shrink-0 ${
+                                    item.status === 'ready' ? 'border-green-500 text-green-600 bg-green-50' : 
+                                    item.status === 'preparing' ? 'border-blue-500 text-blue-600 bg-blue-50' : 
+                                    'border-stone-200 text-stone-400'
+                                  }`}
+                                >
+                                  {item.status === 'ready' ? 'Xong' : item.status === 'preparing' ? 'Đang pha' : 'Chờ'}
+                                </Badge>
                               </div>
-                              <Badge 
-                                variant="outline" 
-                                className={`text-[10px] px-1.5 py-0 h-5 shrink-0 ${
-                                  item.status === 'ready' ? 'border-green-500 text-green-600 bg-green-50' : 
-                                  item.status === 'preparing' ? 'border-blue-500 text-blue-600 bg-blue-50' : 
-                                  'border-stone-200 text-stone-400'
-                                }`}
-                              >
-                                {item.status === 'ready' ? 'Xong' : item.status === 'preparing' ? 'Đang pha' : 'Chờ'}
-                              </Badge>
+                              
+                              {item.status !== 'ready' && (
+                                <button
+                                  onClick={() => updateItemStatus(item.id, item.status === 'preparing' ? 'ready' : 'preparing')}
+                                  className={`w-full py-1 rounded text-[10px] font-bold transition-colors ${
+                                    item.status === 'preparing' 
+                                      ? 'bg-green-600 text-white hover:bg-green-700' 
+                                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                                  }`}
+                                >
+                                  {item.status === 'preparing' ? 'Hoàn thành' : 'Pha chế'}
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>

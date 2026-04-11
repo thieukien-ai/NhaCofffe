@@ -23,11 +23,10 @@ export default function OrderView() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
-  const [showCart, setShowCart] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 1000; // Tăng số lượng để hiển thị tất cả món trên một trang
   const navigate = useNavigate();
   const user = pb.authStore.model;
+  const [showCart, setShowCart] = useState(!user);
+  const itemsPerPage = 1000;
 
   useEffect(() => {
     fetchData();
@@ -127,7 +126,7 @@ export default function OrderView() {
       try {
         const customers = await pb.collection('customers').getFullList();
         const customerList = Array.isArray(customers) ? customers : [];
-        const existingCustomer = customerList.find((c: any) => c.name === customerName);
+        const existingCustomer = customerList.find((c: any) => c.name === customerName) as any;
         
         if (existingCustomer) {
           await pb.collection('customers').update(existingCustomer.id, {
@@ -180,7 +179,7 @@ export default function OrderView() {
   const displayItems = filteredItems; // Hiển thị tất cả món để có thể cuộn
 
   useEffect(() => {
-    setCurrentPage(1);
+    // Reset scroll or other logic if needed
   }, [search, activeCategory]);
 
   return (
@@ -188,7 +187,7 @@ export default function OrderView() {
       {/* Sidebar / Navigation - Desktop: Side, Mobile: Bottom */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-primary flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-white/60 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => window.location.href = '/'}
           className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
         >
           <Home className="w-6 h-6 lg:w-8 lg:h-8" />
@@ -355,7 +354,8 @@ export default function OrderView() {
       </div>
 
       {/* Cart Sidebar */}
-      <aside className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-stone-200 flex flex-col shrink-0 transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:translate-x-0 ${!showCart ? 'lg:hidden' : 'lg:flex'}`}>
+      {(!user || showCart) && (
+        <aside className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-stone-200 flex flex-col shrink-0 transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:translate-x-0 ${!showCart ? 'lg:hidden' : 'lg:flex'}`}>
         <div className="p-6 border-b border-stone-200 flex items-center justify-between shrink-0 bg-white">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
@@ -458,6 +458,7 @@ export default function OrderView() {
           )}
         </div>
       </aside>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Database, Info, FileSpreadsheet, ExternalLink, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import pb from '@/lib/pocketbase';
 
 export default function SetupInstructions() {
   const [copied, setCopied] = useState(false);

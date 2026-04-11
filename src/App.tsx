@@ -105,7 +105,20 @@ export default function App() {
             <Route path="settings" element={<SetupInstructions />} />
           </Route>
         </Routes>
-        <Toaster />
+        <Toaster 
+          position="bottom-center"
+          toastOptions={{
+            style: {
+              background: 'black',
+              color: 'white',
+              fontSize: '1.2rem',
+              padding: '16px',
+              borderRadius: '12px',
+              border: 'none',
+              textAlign: 'center'
+            }
+          }}
+        />
       </div>
     </Router>
   );

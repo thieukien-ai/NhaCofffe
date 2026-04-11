@@ -5,7 +5,9 @@ class GoogleSheetsDB {
   private apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
   private authListeners: ((token: string, model: any) => void)[] = [];
   private cache: Record<string, { data: any, timestamp: number }> = {};
-  private CACHE_TTL = 30000; // 30 seconds cache
+  private CACHE_TTL = 300000; // 5 minutes
+  private writeQueue: { action: string, sheet: string, body: any, id: string }[] = [];
+  private isSyncing = false;
 
   authStore = {
     model: null as any,
@@ -62,30 +64,77 @@ class GoogleSheetsDB {
         
         if (data.error || !Array.isArray(data)) {
           console.error(`API Error reading sheet ${sheet}:`, data.error || 'Response is not an array');
-          // If it's a valid error from API, we might want to return empty array instead of fallback
           return Array.isArray(data) ? data : [];
         }
 
         this.cache[sheet] = { data, timestamp: Date.now() };
         return data;
       } else {
-        // Invalidate cache on write
-        delete this.cache[sheet];
-        if (sheet === 'order_items') delete this.cache['orders'];
-        if (sheet === 'orders') delete this.cache['order_items'];
+        // Ghi dữ liệu: Sử dụng cơ chế Background Sync
+        const requestId = Math.random().toString(36).substr(2, 9);
+        
+        // Cập nhật cache local ngay lập tức để UI phản hồi nhanh
+        if (action === 'create') {
+          const newRecord = { ...body.record, id: body.record.id || requestId, created: new Date().toISOString(), updated: new Date().toISOString() };
+          if (this.cache[sheet]) this.cache[sheet].data.push(newRecord);
+          
+          // Thêm vào hàng đợi gửi lên server
+          this.addToWriteQueue(action, sheet, body, newRecord.id);
+          return newRecord;
+        } else if (action === 'update') {
+          if (this.cache[sheet]) {
+            const idx = this.cache[sheet].data.findIndex((i: any) => i.id === body.id);
+            if (idx !== -1) this.cache[sheet].data[idx] = { ...this.cache[sheet].data[idx], ...body.record };
+          }
+          this.addToWriteQueue(action, sheet, body, body.id);
+          return { success: true };
+        }
 
+        // Fallback cho các action khác
         const response = await fetch(apiUrl, {
           method: 'POST',
           body: JSON.stringify({ action, sheet, ...body }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
       }
     } catch (error) {
       console.error('Google Sheets API Error:', error);
       // Only fallback to localStorage if it's a network error or 404
       return this.localStorageRequest(action, sheet, body);
+    }
+  }
+
+  private addToWriteQueue(action: string, sheet: string, body: any, id: string) {
+    this.writeQueue.push({ action, sheet, body, id });
+    this.processQueue();
+  }
+
+  private async processQueue() {
+    if (this.isSyncing || this.writeQueue.length === 0) return;
+    this.isSyncing = true;
+
+    const apiUrl = this.apiUrl?.trim().replace(/\/+$/, '');
+    
+    while (this.writeQueue.length > 0) {
+      const task = this.writeQueue[0];
+      try {
+        await fetch(apiUrl!, {
+          method: 'POST',
+          body: JSON.stringify(task),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        this.writeQueue.shift(); // Xóa task đã xong
+        console.log(`Background Sync Success: ${task.action} on ${task.sheet}`);
+      } catch (e) {
+        console.error('Background Sync Failed, retrying in 5s...', e);
+        break; // Dừng lại để thử lại sau
+      }
+    }
+
+    this.isSyncing = false;
+    if (this.writeQueue.length > 0) {
+      setTimeout(() => this.processQueue(), 5000);
     }
   }
 
