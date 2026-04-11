@@ -43,7 +43,13 @@ export default function OrderView() {
         pb.collection('menu_items').getFullList<MenuItem>({ sort: 'name', expand: 'category' }),
         pb.collection('categories').getFullList<Category>({ sort: 'name' })
       ]);
-      setMenuItems(itemsData);
+      
+      // Filter out duplicates by ID just in case
+      const uniqueItems = itemsData.filter((item, index, self) =>
+        index === self.findIndex((t) => t.id === item.id)
+      );
+      
+      setMenuItems(uniqueItems);
       setCategories(catsData);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -244,12 +250,21 @@ export default function OrderView() {
             </div>
           )}
 
-          <div className="w-full mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="w-full mb-8 overflow-x-auto pb-4 scrollbar-hide shrink-0">
             <Tabs defaultValue="all" className="w-full" onValueChange={setActiveCategory}>
-              <TabsList className="bg-secondary p-1.5 rounded-2xl h-auto inline-flex whitespace-nowrap">
-                <TabsTrigger value="all" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Tất cả</TabsTrigger>
+              <TabsList className="bg-secondary p-2 rounded-2xl h-auto inline-flex whitespace-nowrap gap-2">
+                <TabsTrigger 
+                  value="all" 
+                  className="rounded-xl px-8 py-3 text-base font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md transition-all"
+                >
+                  Tất cả
+                </TabsTrigger>
                 {categories.map(cat => (
-                  <TabsTrigger key={cat.id} value={cat.id} className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+                  <TabsTrigger 
+                    key={cat.id} 
+                    value={cat.id} 
+                    className="rounded-xl px-8 py-3 text-base font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md transition-all"
+                  >
                     {cat.name}
                   </TabsTrigger>
                 ))}
@@ -257,72 +272,74 @@ export default function OrderView() {
             </Tabs>
           </div>
 
-          <ScrollArea className="flex-1 -mx-4 sm:-mx-6 px-4 sm:px-6">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-6">
-              {paginatedItems.map(item => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ y: -4 }}
-                >
-                  <Card 
-                    className={`coffee-card overflow-hidden cursor-pointer ${myOrder ? 'opacity-50 grayscale' : ''}`}
-                    onClick={() => addToCart(item)}
+          <div className="flex-1 relative min-h-0">
+            <ScrollArea className="absolute inset-0 -mx-4 sm:-mx-6 px-4 sm:px-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-6">
+                {paginatedItems.map(item => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ y: -4 }}
                   >
-                    <div className="aspect-square bg-stone-100 relative overflow-hidden">
-                      {item.image ? (
-                        <img 
-                          src={pb.files.getUrl(item, item.image)} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-stone-300">
-                          <Coffee className="w-16 h-16" />
+                    <Card 
+                      className={`coffee-card overflow-hidden cursor-pointer h-full ${myOrder ? 'opacity-50 grayscale' : ''}`}
+                      onClick={() => addToCart(item)}
+                    >
+                      <div className="aspect-square bg-stone-100 relative overflow-hidden">
+                        {item.image ? (
+                          <img 
+                            src={pb.files.getUrl(item, item.image)} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-stone-300">
+                            <Coffee className="w-16 h-16" />
+                          </div>
+                        )}
+                        <div className="absolute top-3 right-3">
+                          <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm">
+                            {item.price.toLocaleString('vi-VN')}đ
+                          </Badge>
                         </div>
-                      )}
-                      <div className="absolute top-3 right-3">
-                        <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm">
-                          {item.price.toLocaleString('vi-VN')}đ
-                        </Badge>
                       </div>
-                    </div>
-                    <CardContent className="p-5">
-                      <h3 className="text-lg font-serif text-ink truncate">{item.name}</h3>
-                      <p className="text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-4 pb-8">
-                <Button 
-                  variant="outline" 
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="rounded-xl"
-                >
-                  Trước
-                </Button>
-                <span className="text-sm font-medium text-stone-500">
-                  Trang {currentPage} / {totalPages}
-                </span>
-                <Button 
-                  variant="outline" 
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="rounded-xl"
-                >
-                  Sau
-                </Button>
+                      <CardContent className="p-4 sm:p-5">
+                        <h3 className="text-sm sm:text-lg font-serif text-ink truncate">{item.name}</h3>
+                        <p className="text-[10px] sm:text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
-            )}
-          </ScrollArea>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-4 pb-12">
+                  <Button 
+                    variant="outline" 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className="rounded-xl h-10 px-6"
+                  >
+                    Trước
+                  </Button>
+                  <span className="text-sm font-medium text-stone-500">
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="rounded-xl h-10 px-6"
+                  >
+                    Sau
+                  </Button>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         </main>
       </div>
 
@@ -370,8 +387,9 @@ export default function OrderView() {
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-6">
-          <AnimatePresence mode="popLayout">
+        <div className="flex-1 min-h-0 relative">
+          <ScrollArea className="absolute inset-0 p-6">
+            <AnimatePresence mode="popLayout">
             {cart.map(({ item, quantity }) => (
               <motion.div
                 key={item.id}
@@ -405,6 +423,7 @@ export default function OrderView() {
             )}
           </AnimatePresence>
         </ScrollArea>
+      </div>
 
         <div className="p-6 bg-white border-t border-stone-200 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-center font-bold text-lg text-stone-800">

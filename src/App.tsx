@@ -68,7 +68,6 @@ export default function App() {
             const price = Math.floor(Math.random() * (150 - 20 + 1) + 20) * 1000;
             const cost_price = Math.floor(price * 0.4);
             await pb.collection('menu_items').create({
-              id: `item_${prefix}_${i}`,
               name: name,
               description: `Mô tả cho ${name}`,
               price: price,
