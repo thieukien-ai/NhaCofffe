@@ -25,11 +25,7 @@ class GoogleSheetsDB {
   };
 
   constructor() {
-    const savedAuth = localStorage.getItem('coffee_pos_auth');
-    if (savedAuth) {
-      this.authStore.model = JSON.parse(savedAuth);
-      this.authStore.isValid = true;
-    }
+    // Auth persistence removed to prevent automatic login
   }
 
   private notifyAuthChange() {
@@ -126,11 +122,14 @@ class GoogleSheetsDB {
         
         // Sorting
         if (options.sort) {
-          const field = options.sort.replace('-', '');
-          const desc = options.sort.startsWith('-');
+          const sortFields = options.sort.split(',').map((s: string) => s.trim());
           list.sort((a: any, b: any) => {
-            if (a[field] < b[field]) return desc ? 1 : -1;
-            if (a[field] > b[field]) return desc ? -1 : 1;
+            for (const sortStr of sortFields) {
+              const field = sortStr.replace('-', '');
+              const desc = sortStr.startsWith('-');
+              if (a[field] < b[field]) return desc ? 1 : -1;
+              if (a[field] > b[field]) return desc ? -1 : 1;
+            }
             return 0;
           });
         }

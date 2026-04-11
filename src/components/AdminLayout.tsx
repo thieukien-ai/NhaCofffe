@@ -11,7 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  Package
+  Package,
+  Home,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -33,6 +35,7 @@ export default function AdminLayout() {
     { icon: Package, label: 'Nhập nguyên liệu', path: '/admin/ingredients' },
     { icon: Receipt, label: 'Lịch sử đơn hàng', path: '/admin/orders' },
     { icon: TrendingUp, label: 'Chi phí & Doanh thu', path: '/admin/expenses' },
+    { icon: User, label: 'Theo dõi đơn (Staff)', path: '/staff' },
     { icon: Users, label: 'Nhân viên', path: '/admin/staff' },
     { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
   ];
@@ -46,9 +49,14 @@ export default function AdminLayout() {
           collapsed ? "w-20" : "w-64"
         )}
       >
-        <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0">
-          <Coffee className="w-8 h-8 text-orange-400 shrink-0" />
-          {!collapsed && <span className="ml-3 font-bold text-lg text-stone-50 truncate">Coffee Admin</span>}
+        <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0 gap-3">
+          <button 
+            onClick={() => navigate('/order')}
+            className="p-1.5 bg-stone-800 rounded-lg text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            <Home className="w-5 h-5" />
+          </button>
+          {!collapsed && <span className="font-bold text-lg text-stone-50 truncate">Coffee Admin</span>}
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

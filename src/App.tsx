@@ -13,6 +13,7 @@ import StaffManagement from '@/components/StaffManagement';
 import OrderHistory from '@/components/OrderHistory';
 import SetupInstructions from '@/components/SetupInstructions';
 import IngredientManagement from '@/components/IngredientManagement';
+import StaffView from '@/components/StaffView';
 import { User } from '@/types';
 
 export default function App() {
@@ -176,6 +177,7 @@ export default function App() {
           <Route path="/" element={<OrderView />} />
           
           <Route path="/barista" element={user ? <BaristaView /> : <Navigate to="/login" />} />
+          <Route path="/staff" element={user ? <StaffView /> : <Navigate to="/login" />} />
           
           <Route path="/admin" element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
             <Route index element={<Dashboard />} />

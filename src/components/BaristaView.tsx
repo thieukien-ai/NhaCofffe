@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart } from 'lucide-react';
+import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -43,7 +43,7 @@ export default function BaristaView() {
     try {
       const data = await pb.collection('orders').getFullList<Order>({
         filter: 'status != "completed" && status != "cancelled"',
-        sort: '-created',
+        sort: '-created, table_number',
         expand: 'order_items_via_order.menu_item'
       });
       setOrders(data);
@@ -102,9 +102,12 @@ export default function BaristaView() {
     <div className="flex h-screen bg-stone-900 text-stone-100 overflow-hidden">
       {/* Sidebar */}
       <div className="w-20 bg-stone-950 flex flex-col items-center py-6 space-y-8 text-stone-500">
-        <div className="p-2 bg-stone-800 rounded-xl text-orange-400">
-          <Coffee className="w-8 h-8" />
-        </div>
+        <button 
+          onClick={() => navigate('/order')}
+          className="p-2 bg-stone-800 rounded-xl text-orange-400 hover:text-orange-300 transition-colors"
+        >
+          <Home className="w-8 h-8" />
+        </button>
         <button 
           onClick={() => navigate('/order')}
           className="p-3 hover:bg-stone-800 rounded-xl transition-colors"

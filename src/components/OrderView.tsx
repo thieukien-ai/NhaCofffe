@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp, Home, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,9 @@ export default function OrderView() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
+  const [showCart, setShowCart] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const navigate = useNavigate();
   const user = pb.authStore.model;
 
@@ -131,14 +134,27 @@ export default function OrderView() {
     return matchesSearch && matchesCategory && item.available;
   });
 
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeCategory]);
+
   return (
     <div className="flex h-screen bg-secondary overflow-hidden">
       {/* Sidebar / Navigation */}
       <div className="w-20 bg-primary flex flex-col items-center py-6 space-y-8 text-white/60">
-        <div className="p-3 bg-white/10 rounded-2xl text-white">
-          <Coffee className="w-8 h-8" />
-        </div>
-        <button className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white">
+        <button 
+          onClick={() => navigate('/')}
+          className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
+        >
+          <Home className="w-8 h-8" />
+        </button>
+        <button 
+          onClick={() => setShowCart(!showCart)}
+          className={`p-3 rounded-2xl transition-all ${showCart ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-white/60'}`}
+        >
           <ShoppingCart className="w-6 h-6" />
         </button>
         {user && (
@@ -147,6 +163,14 @@ export default function OrderView() {
             className="p-3 hover:bg-white/10 rounded-2xl transition-all"
           >
             <ClipboardList className="w-6 h-6" />
+          </button>
+        )}
+        {user && (
+          <button 
+            onClick={() => navigate('/staff')}
+            className="p-3 hover:bg-white/10 rounded-2xl transition-all"
+          >
+            <User className="w-6 h-6" />
           </button>
         )}
         {user?.username === 'SA' && (
@@ -231,9 +255,9 @@ export default function OrderView() {
             </TabsList>
           </Tabs>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
-              {filteredItems.map(item => (
+              {paginatedItems.map(item => (
                 <motion.div
                   key={item.id}
                   layout
@@ -242,7 +266,7 @@ export default function OrderView() {
                   whileHover={{ y: -4 }}
                 >
                   <Card 
-                    className={`coffee-card overflow-hidden ${myOrder ? 'opacity-50 grayscale' : ''}`}
+                    className={`coffee-card overflow-hidden cursor-pointer ${myOrder ? 'opacity-50 grayscale' : ''}`}
                     onClick={() => addToCart(item)}
                   >
                     <div className="aspect-square bg-stone-100 relative overflow-hidden">
@@ -272,77 +296,114 @@ export default function OrderView() {
                 </motion.div>
               ))}
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-4 pb-8">
+                <Button 
+                  variant="outline" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="rounded-xl"
+                >
+                  Trước
+                </Button>
+                <span className="text-sm font-medium text-stone-500">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <Button 
+                  variant="outline" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="rounded-xl"
+                >
+                  Sau
+                </Button>
+              </div>
+            )}
           </ScrollArea>
         </main>
       </div>
 
       {/* Cart Sidebar */}
-      <aside className="w-96 bg-white border-l border-stone-200 flex flex-col shrink-0">
+      <aside className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-stone-200 flex flex-col shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0 ${showCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
         <div className="p-6 border-b border-stone-200 flex items-center justify-between">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
             Giỏ hàng
           </h2>
-          <Badge variant="secondary" className="bg-stone-100 text-stone-600">
-            {cart.reduce((s, i) => s + i.quantity, 0)} món
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="bg-stone-100 text-stone-600">
+              {cart.reduce((s, i) => s + i.quantity, 0)} món
+            </Badge>
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setShowCart(false)}>
+              <Minus className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6 border-b border-stone-200 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="customerName" className="flex items-center gap-2">
+              <UserIcon className="w-4 h-4" /> Tên khách hàng
+            </Label>
+            <Input 
+              id="customerName" 
+              placeholder="Nhập tên của bạn..." 
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              disabled={!!myOrder}
+              className="border-stone-200 focus:ring-stone-500 rounded-xl"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tableNum">Số bàn</Label>
+            <Input 
+              id="tableNum" 
+              type="number" 
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              disabled={!!myOrder}
+              className="border-stone-200 focus:ring-stone-500 rounded-xl"
+            />
+          </div>
         </div>
 
         <ScrollArea className="flex-1 p-6">
-          <div className="space-y-4 mb-6">
-            <div className="space-y-2">
-              <Label htmlFor="customerName" className="flex items-center gap-2">
-                <UserIcon className="w-4 h-4" /> Tên khách hàng
-              </Label>
-              <Input 
-                id="customerName" 
-                placeholder="Nhập tên của bạn..." 
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                disabled={!!myOrder}
-                className="border-stone-200 focus:ring-stone-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tableNum">Số bàn</Label>
-              <Input 
-                id="tableNum" 
-                type="number" 
-                value={tableNumber}
-                onChange={(e) => setTableNumber(e.target.value)}
-                disabled={!!myOrder}
-                className="border-stone-200 focus:ring-stone-500"
-              />
-            </div>
+          <div className="max-h-[400px]">
+            <AnimatePresence mode="popLayout">
+              {cart.map(({ item, quantity }) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group border border-stone-100"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
+                    <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!myOrder && (
+                      <>
+                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
+                        <span className="text-sm font-bold w-4 text-center">{quantity}</span>
+                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
+                      </>
+                    )}
+                    {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
+                  </div>
+                </motion.div>
+              ))}
+              {cart.length === 0 && (
+                <div className="text-center py-12 text-stone-400">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm">Giỏ hàng trống</p>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
-
-          <AnimatePresence mode="popLayout">
-            {cart.map(({ item, quantity }) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex items-center gap-4 mb-4 p-3 bg-stone-50 rounded-xl group"
-              >
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm text-stone-800 truncate">{item.name}</h4>
-                  <p className="text-xs text-stone-500">{(item.price * quantity).toLocaleString('vi-VN')}đ</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!myOrder && (
-                    <>
-                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                      <span className="text-sm font-bold w-4 text-center">{quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-400 hover:text-red-500" onClick={() => removeFromCart(item.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </>
-                  )}
-                  {myOrder && <span className="text-sm font-bold">x{quantity}</span>}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
         </ScrollArea>
 
         <div className="p-6 bg-stone-50 border-t border-stone-200 space-y-4">
