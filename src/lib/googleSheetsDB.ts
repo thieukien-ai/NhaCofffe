@@ -33,8 +33,15 @@ class GoogleSheetsDB {
   }
 
   private async request(action: string, sheet: string, body?: any) {
-    if (!this.apiUrl) {
+    const apiUrl = this.apiUrl?.trim();
+    if (!apiUrl) {
       console.warn('VITE_GOOGLE_SHEET_API_URL is missing. Using LocalStorage fallback.');
+      return this.localStorageRequest(action, sheet, body);
+    }
+
+    // Ensure URL is absolute
+    if (!apiUrl.startsWith('http')) {
+      console.error('VITE_GOOGLE_SHEET_API_URL must be an absolute URL starting with http/https');
       return this.localStorageRequest(action, sheet, body);
     }
 
@@ -45,7 +52,7 @@ class GoogleSheetsDB {
 
     try {
       if (action === 'read') {
-        const response = await fetch(`${this.apiUrl}?action=read&sheet=${sheet}`);
+        const response = await fetch(`${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=read&sheet=${sheet}`);
         const data = await response.json();
         
         if (data.error || !Array.isArray(data)) {
@@ -61,7 +68,7 @@ class GoogleSheetsDB {
         if (sheet === 'order_items') delete this.cache['orders'];
         if (sheet === 'orders') delete this.cache['order_items'];
 
-        const response = await fetch(this.apiUrl, {
+        const response = await fetch(apiUrl, {
           method: 'POST',
           body: JSON.stringify({ action, sheet, ...body }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
@@ -122,7 +129,8 @@ class GoogleSheetsDB {
   }
 
   async batchRead(sheets: string[]) {
-    if (!this.apiUrl) {
+    const apiUrl = this.apiUrl?.trim();
+    if (!apiUrl || !apiUrl.startsWith('http')) {
       const result: any = {};
       for (const sheet of sheets) {
         result[sheet] = await this.collection(sheet).getFullList();
@@ -131,7 +139,7 @@ class GoogleSheetsDB {
     }
 
     try {
-      const response = await fetch(`${this.apiUrl}?action=batch_read&sheets=${sheets.join(',')}`);
+      const response = await fetch(`${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=batch_read&sheets=${sheets.join(',')}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       

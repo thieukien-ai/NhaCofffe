@@ -25,7 +25,7 @@ export default function OrderView() {
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
   const [showCart, setShowCart] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 1000; // Tăng số lượng để hiển thị tất cả món trên một trang
   const navigate = useNavigate();
   const user = pb.authStore.model;
 
@@ -155,7 +155,7 @@ export default function OrderView() {
   });
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const displayItems = filteredItems; // Hiển thị tất cả món để có thể cuộn
 
   useEffect(() => {
     setCurrentPage(1);
@@ -289,7 +289,7 @@ export default function OrderView() {
           <div className="flex-1 relative min-h-0">
             <ScrollArea className="absolute inset-0 -mx-4 sm:-mx-6 px-4 sm:px-6">
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-6">
-                {paginatedItems.map(item => (
+                {displayItems.map(item => (
                   <motion.div
                     key={item.id}
                     layout
@@ -329,29 +329,7 @@ export default function OrderView() {
                 ))}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 mt-4 pb-12">
-                  <Button 
-                    variant="outline" 
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    className="rounded-xl h-10 px-6"
-                  >
-                    Trước
-                  </Button>
-                  <span className="text-sm font-medium text-stone-500">
-                    Trang {currentPage} / {totalPages}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className="rounded-xl h-10 px-6"
-                  >
-                    Sau
-                  </Button>
-                </div>
-              )}
+              {/* Pagination removed to allow scrolling through all items */}
             </ScrollArea>
           </div>
         </main>
