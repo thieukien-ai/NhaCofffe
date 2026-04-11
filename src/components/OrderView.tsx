@@ -126,12 +126,13 @@ export default function OrderView() {
       // Ghi nhận thông tin khách hàng
       try {
         const customers = await pb.collection('customers').getFullList();
-        const existingCustomer = customers.find((c: any) => c.name === customerName);
+        const customerList = Array.isArray(customers) ? customers : [];
+        const existingCustomer = customerList.find((c: any) => c.name === customerName);
         
         if (existingCustomer) {
           await pb.collection('customers').update(existingCustomer.id, {
             last_order_date: new Date().toISOString(),
-            total_spent: (existingCustomer.total_spent || 0) + totalAmount
+            total_spent: (Number(existingCustomer.total_spent) || 0) + totalAmount
           });
         } else {
           await pb.collection('customers').create({

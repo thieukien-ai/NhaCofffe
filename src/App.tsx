@@ -30,29 +30,39 @@ export default function App() {
 
     // Diagnostic check for Google Sheets connection
     const checkConnection = async () => {
-      const apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
+      let apiUrl = import.meta.env.VITE_GOOGLE_SHEET_API_URL;
       
-      // Kiểm tra xem có biến nào bị thiếu tiền tố VITE_ không
-      // Lưu ý: Vite không cho phép truy cập biến không có VITE_ qua import.meta.env
-      // nhưng chúng ta có thể cảnh báo người dùng về việc này.
       if (!apiUrl) {
         console.error('VITE_GOOGLE_SHEET_API_URL is missing.');
-        toast.error('LỖI CẤU HÌNH: Bạn cần đặt tên biến là VITE_GOOGLE_SHEET_API_URL (phải có chữ VITE_ ở đầu) trên Vercel.');
+        toast.error('LỖI CẤU HÌNH: Thiếu biến VITE_GOOGLE_SHEET_API_URL trên Vercel.');
         return;
       }
+
+      apiUrl = apiUrl.trim().replace(/\/+$/, '');
       
       try {
-        console.log('Testing connection to Google Sheets API...');
-        const response = await fetch(`${apiUrl}?action=read&sheet=users`);
+        console.log('Testing connection to:', apiUrl);
+        const fetchUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=read&sheet=users`;
+        const response = await fetch(fetchUrl);
+        
         if (response.ok) {
-          console.log('Successfully connected to Google Sheets API.');
+          const data = await response.json();
+          console.log('Connection successful, data:', data);
+          if (Array.isArray(data)) {
+            toast.success('Kết nối Google Sheets thành công!');
+          } else {
+            console.warn('Response is not an array:', data);
+            toast.warning('Kết nối thành công nhưng dữ liệu không đúng định dạng.');
+          }
         } else {
-          console.error('Google Sheets API returned an error status:', response.status);
-          toast.error('Không thể kết nối với Google Sheets. Vui lòng kiểm tra lại URL Apps Script.');
+          console.error('API Error:', response.status, response.statusText);
+          const text = await response.text();
+          console.error('Response body:', text);
+          toast.error(`Lỗi kết nối (${response.status}): ${response.statusText}`);
         }
       } catch (error) {
-        console.error('Failed to fetch from Google Sheets API:', error);
-        toast.error('Lỗi kết nối API Google Sheets. Đảm bảo bạn đã Deploy Apps Script là "Anyone".');
+        console.error('Fetch error:', error);
+        toast.error('Không thể kết nối tới Apps Script. Đảm bảo bạn đã Deploy là "Anyone".');
       }
     };
 

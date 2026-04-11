@@ -33,11 +33,14 @@ class GoogleSheetsDB {
   }
 
   private async request(action: string, sheet: string, body?: any) {
-    const apiUrl = this.apiUrl?.trim();
+    let apiUrl = this.apiUrl?.trim();
     if (!apiUrl) {
       console.warn('VITE_GOOGLE_SHEET_API_URL is missing. Using LocalStorage fallback.');
       return this.localStorageRequest(action, sheet, body);
     }
+
+    // Clean up URL (remove trailing slashes and spaces)
+    apiUrl = apiUrl.replace(/\/+$/, '');
 
     // Ensure URL is absolute
     if (!apiUrl.startsWith('http')) {
@@ -52,12 +55,15 @@ class GoogleSheetsDB {
 
     try {
       if (action === 'read') {
-        const response = await fetch(`${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=read&sheet=${sheet}`);
+        const fetchUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=read&sheet=${sheet}`;
+        const response = await fetch(fetchUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         
         if (data.error || !Array.isArray(data)) {
           console.error(`API Error reading sheet ${sheet}:`, data.error || 'Response is not an array');
-          return this.localStorageRequest(action, sheet, body);
+          // If it's a valid error from API, we might want to return empty array instead of fallback
+          return Array.isArray(data) ? data : [];
         }
 
         this.cache[sheet] = { data, timestamp: Date.now() };
@@ -73,10 +79,12 @@ class GoogleSheetsDB {
           body: JSON.stringify({ action, sheet, ...body }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
       }
     } catch (error) {
       console.error('Google Sheets API Error:', error);
+      // Only fallback to localStorage if it's a network error or 404
       return this.localStorageRequest(action, sheet, body);
     }
   }
@@ -129,18 +137,22 @@ class GoogleSheetsDB {
   }
 
   async batchRead(sheets: string[]) {
-    const apiUrl = this.apiUrl?.trim();
+    let apiUrl = this.apiUrl?.trim();
     if (!apiUrl || !apiUrl.startsWith('http')) {
       const result: any = {};
       for (const sheet of sheets) {
-        result[sheet] = await this.collection(sheet).getFullList();
+        const list = await this.collection(sheet).getFullList();
+        result[sheet] = Array.isArray(list) ? list : [];
       }
       return result;
     }
 
+    apiUrl = apiUrl.replace(/\/+$/, '');
+
     try {
-      const response = await fetch(`${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=batch_read&sheets=${sheets.join(',')}`);
-      if (!response.ok) throw new Error('Network response was not ok');
+      const fetchUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=batch_read&sheets=${sheets.join(',')}`;
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       
       if (data.error) throw new Error(data.error);
@@ -168,9 +180,14 @@ class GoogleSheetsDB {
   }
 
   async seedData() {
-    if (!this.apiUrl) return { error: 'API URL missing' };
+    let apiUrl = this.apiUrl?.trim();
+    if (!apiUrl) return { error: 'API URL missing' };
+    apiUrl = apiUrl.replace(/\/+$/, '');
+    
     try {
-      const response = await fetch(`${this.apiUrl}?action=seed_data`);
+      const fetchUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=seed_data`;
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
     } catch (error) {
       console.error('Seed data error:', error);
