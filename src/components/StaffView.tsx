@@ -15,6 +15,7 @@ export default function StaffView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,6 +47,13 @@ export default function StaffView() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const unsubscribeQueue = (pb as any).onQueueChange((count: number) => {
+      setQueueCount(count);
+    });
+    return () => unsubscribeQueue();
+  }, []);
 
   const handleLogout = () => {
     pb.authStore.clear();
@@ -127,10 +135,15 @@ export default function StaffView() {
               variant="ghost" 
               size="icon" 
               onClick={handleSync}
-              className={isSyncing ? 'animate-spin' : ''}
+              className={`relative ${isSyncing ? 'animate-spin' : ''}`}
               title="Đồng bộ ngay"
             >
               <RefreshCw className="w-4 h-4 text-stone-400" />
+              {queueCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                  {queueCount}
+                </span>
+              )}
             </Button>
             <Badge variant="outline" className="border-stone-200 text-stone-600">
               {orders.length} Đơn hôm nay

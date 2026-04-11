@@ -15,6 +15,7 @@ export default function BaristaView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -110,6 +111,13 @@ export default function BaristaView() {
     }
   };
 
+  useEffect(() => {
+    const unsubscribeQueue = (pb as any).onQueueChange((count: number) => {
+      setQueueCount(count);
+    });
+    return () => unsubscribeQueue();
+  }, []);
+
   const handleLogout = () => {
     pb.authStore.clear();
     navigate('/login');
@@ -153,10 +161,15 @@ export default function BaristaView() {
               variant="ghost" 
               size="icon" 
               onClick={handleSync}
-              className={isSyncing ? 'animate-spin' : ''}
+              className={`relative ${isSyncing ? 'animate-spin' : ''}`}
               title="Đồng bộ ngay"
             >
               <RefreshCw className="w-4 h-4 text-stone-400" />
+              {queueCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                  {queueCount}
+                </span>
+              )}
             </Button>
             <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10">
               {orders.length} Đơn đang chờ

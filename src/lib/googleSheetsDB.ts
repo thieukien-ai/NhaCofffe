@@ -8,6 +8,7 @@ class GoogleSheetsDB {
   private CACHE_TTL = 60000; // 60 seconds cache
   private writeQueue: { action: string, sheet: string, body: any, id: string }[] = [];
   private isSyncing = false;
+  private queueListeners: ((count: number) => void)[] = [];
 
   authStore = {
     model: null as any,
@@ -107,7 +108,19 @@ class GoogleSheetsDB {
 
   private addToWriteQueue(action: string, sheet: string, body: any, id: string) {
     this.writeQueue.push({ action, sheet, body, id });
+    this.notifyQueueChange();
     this.processQueue();
+  }
+
+  onQueueChange(callback: (count: number) => void) {
+    this.queueListeners.push(callback);
+    return () => {
+      this.queueListeners = this.queueListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyQueueChange() {
+    this.queueListeners.forEach(l => l(this.writeQueue.length));
   }
 
   async sync() {
@@ -129,20 +142,21 @@ class GoogleSheetsDB {
       try {
         await fetch(apiUrl!, {
           method: 'POST',
-          body: JSON.stringify(task),
+          body: JSON.stringify({ action: task.action, sheet: task.sheet, ...task.body }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         this.writeQueue.shift(); // Xóa task đã xong
+        this.notifyQueueChange();
         console.log(`Background Sync Success: ${task.action} on ${task.sheet}`);
       } catch (e) {
-        console.error('Background Sync Failed, retrying in 5s...', e);
+        console.error('Background Sync Failed, retrying in 10s...', e);
         break; // Dừng lại để thử lại sau
       }
     }
 
     this.isSyncing = false;
     if (this.writeQueue.length > 0) {
-      setTimeout(() => this.processQueue(), 5000);
+      setTimeout(() => this.processQueue(), 10000);
     }
   }
 

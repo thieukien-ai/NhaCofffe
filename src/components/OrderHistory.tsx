@@ -11,7 +11,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Printer, Search, Eye, CheckCircle2, XCircle } from 'lucide-react';
+import { Printer, Search, Eye, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useReactToPrint } from 'react-to-print';
@@ -43,6 +43,17 @@ export default function OrderHistory() {
     contentRef: printRef,
     documentTitle: `Hoa-don-${selectedOrder?.id}`,
   });
+
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) return;
+    try {
+      await pb.collection('orders').delete(id);
+      toast.success('Đã xóa đơn hàng');
+      fetchOrders();
+    } catch (error) {
+      toast.error('Lỗi khi xóa đơn hàng');
+    }
+  };
 
   const filteredOrders = orders.filter(o => 
     o.table_number.includes(search) || 
@@ -113,6 +124,14 @@ export default function OrderHistory() {
                       }}
                     >
                       <Printer className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteOrder(order.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </TableCell>

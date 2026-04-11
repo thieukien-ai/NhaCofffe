@@ -180,6 +180,15 @@ export default function MenuManagement() {
                   onChange={(e) => setEditingItem(prev => ({ ...prev!, description: e.target.value }))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="image">Ảnh (URL)</Label>
+                <Input 
+                  id="image" 
+                  placeholder="https://example.com/image.jpg"
+                  value={editingItem?.image || ''} 
+                  onChange={(e) => setEditingItem(prev => ({ ...prev!, image: e.target.value }))}
+                />
+              </div>
               <DialogFooter>
                 <Button type="submit" className="w-full bg-stone-800 text-stone-50">Lưu thay đổi</Button>
               </DialogFooter>

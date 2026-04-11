@@ -24,6 +24,7 @@ export default function OrderView() {
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
   const navigate = useNavigate();
   const user = pb.authStore.model;
   const [showCart, setShowCart] = useState(!user);
@@ -71,6 +72,13 @@ export default function OrderView() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const unsubscribeQueue = (pb as any).onQueueChange((count: number) => {
+      setQueueCount(count);
+    });
+    return () => unsubscribeQueue();
+  }, []);
 
   const addToCart = (item: MenuItem) => {
     if (myOrder) {
@@ -268,10 +276,15 @@ export default function OrderView() {
               variant="ghost" 
               size="icon" 
               onClick={handleSync}
-              className={isSyncing ? 'animate-spin' : ''}
+              className={`relative ${isSyncing ? 'animate-spin' : ''}`}
               title="Đồng bộ ngay"
             >
               <RefreshCw className="w-5 h-5 text-stone-400" />
+              {queueCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                  {queueCount}
+                </span>
+              )}
             </Button>
           </div>
           <div className="flex items-center space-x-4 w-1/2 max-w-md">
@@ -363,14 +376,14 @@ export default function OrderView() {
                         </div>
                       )}
                       <div className="absolute top-3 right-3">
-                        <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm">
+                        <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm text-lg sm:text-xl px-3 py-1">
                           {item.price.toLocaleString('vi-VN')}đ
                         </Badge>
                       </div>
                     </div>
                     <CardContent className="p-4 sm:p-5">
-                      <h3 className="text-sm sm:text-lg font-serif text-ink truncate">{item.name}</h3>
-                      <p className="text-[10px] sm:text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+                      <h3 className="text-lg sm:text-2xl font-serif text-ink truncate">{item.name}</h3>
+                      <p className="text-xs sm:text-sm text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
