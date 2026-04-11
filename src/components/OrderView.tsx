@@ -286,51 +286,48 @@ export default function OrderView() {
             </Tabs>
           </div>
 
-          <div className="flex-1 relative min-h-0">
-            <ScrollArea className="absolute inset-0 -mx-4 sm:-mx-6 px-4 sm:px-6">
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-6">
-                {displayItems.map(item => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ y: -4 }}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 -mx-4 sm:-mx-6 scrollbar-hide">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 pb-24">
+              {displayItems.map(item => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <Card 
+                    className={`coffee-card overflow-hidden cursor-pointer h-full ${myOrder ? 'opacity-50 grayscale' : ''}`}
+                    onClick={() => addToCart(item)}
                   >
-                    <Card 
-                      className={`coffee-card overflow-hidden cursor-pointer h-full ${myOrder ? 'opacity-50 grayscale' : ''}`}
-                      onClick={() => addToCart(item)}
-                    >
-                      <div className="aspect-square bg-stone-100 relative overflow-hidden">
-                        {item.image ? (
-                          <img 
-                            src={pb.files.getUrl(item, item.image)} 
-                            alt={item.name} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-stone-300">
-                            <Coffee className="w-16 h-16" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 right-3">
-                          <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm">
-                            {item.price.toLocaleString('vi-VN')}đ
-                          </Badge>
+                    <div className="aspect-square bg-stone-100 relative overflow-hidden">
+                      {item.image ? (
+                        <img 
+                          src={pb.files.getUrl(item, item.image)} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-stone-300">
+                          <Coffee className="w-16 h-16" />
                         </div>
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-white/90 backdrop-blur-md text-primary font-bold border-none shadow-sm">
+                          {item.price.toLocaleString('vi-VN')}đ
+                        </Badge>
                       </div>
-                      <CardContent className="p-4 sm:p-5">
-                        <h3 className="text-sm sm:text-lg font-serif text-ink truncate">{item.name}</h3>
-                        <p className="text-[10px] sm:text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Pagination removed to allow scrolling through all items */}
-            </ScrollArea>
+                    </div>
+                    <CardContent className="p-4 sm:p-5">
+                      <h3 className="text-sm sm:text-lg font-serif text-ink truncate">{item.name}</h3>
+                      <p className="text-[10px] sm:text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            {/* Pagination removed to allow scrolling through all items */}
           </div>
         </main>
       </div>
