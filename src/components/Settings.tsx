@@ -7,11 +7,15 @@ import { User, Mail, Phone, MapPin, Lock, Save, ShieldCheck, Printer, Store, Arr
 import { toast } from 'sonner';
 import pb from '@/lib/pocketbase';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+import Navbar from './Navbar';
 
 export default function Settings() {
   const user = pb.authStore.model;
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [receiptConfig, setReceiptConfig] = useState({
     shopName: 'COFFEE SHOP',
@@ -101,9 +105,18 @@ export default function Settings() {
     }
   };
 
+  const isAdminView = location.pathname.startsWith('/admin');
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={cn(
+      "flex flex-col lg:flex-row h-screen bg-stone-50 overflow-hidden",
+      !isAdminView && "bg-stone-50"
+    )}>
+      {!isAdminView && <Navbar />}
+      
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -362,5 +375,7 @@ export default function Settings() {
         </div>
       </div>
     </div>
+  </div>
+</div>
   );
 }

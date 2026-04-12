@@ -13,35 +13,18 @@ import {
   TrendingUp,
   Package,
   Home,
-  User,
-  Maximize,
-  Minimize
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+import Navbar from './Navbar';
+
 export default function AdminLayout() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
-      });
-      setIsFullScreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullScreen(false);
-      }
-    }
-  };
 
   useEffect(() => {
     // Quick guide for admin
@@ -71,98 +54,18 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div className="flex h-screen bg-stone-50 overflow-hidden relative">
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div 
-          className="fixed inset-0 bg-stone-900/50 z-50 lg:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside 
-        className={cn(
-          "bg-stone-900 text-stone-300 transition-all duration-300 flex flex-col shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:translate-x-0",
-          collapsed ? "w-20" : "w-64",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0 gap-3">
-          <button 
-            onClick={() => navigate('/')}
-            className="p-1.5 bg-stone-800 rounded-lg text-orange-400 hover:text-orange-300 transition-colors"
-          >
-            <Home className="w-5 h-5" />
-          </button>
-          {!collapsed && <span className="font-bold text-lg text-stone-50 truncate">Coffee Admin</span>}
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={cn(
-                  "flex items-center p-3 rounded-xl transition-all group",
-                  isActive 
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" 
-                    : "hover:bg-stone-800 hover:text-stone-100"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "" : "group-hover:scale-110 transition-transform")} />
-                {!collapsed && <span className="ml-3 font-medium truncate">{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-stone-800 space-y-2">
-          <button 
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center w-full p-3 rounded-xl hover:bg-stone-800 transition-colors"
-          >
-            {collapsed ? <ChevronRight className="w-5 h-5 mx-auto" /> : (
-              <>
-                <ChevronLeft className="w-5 h-5" />
-                <span className="ml-3 font-medium">Thu gọn</span>
-              </>
-            )}
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center w-full p-3 rounded-xl hover:bg-red-900/20 hover:text-red-400 transition-colors"
-          >
-            <LogOut className={cn("w-5 h-5", collapsed ? "mx-auto" : "")} />
-            {!collapsed && <span className="ml-3 font-medium">Đăng xuất</span>}
-          </button>
-        </div>
-      </aside>
+    <div className="flex flex-col lg:flex-row h-screen bg-stone-50 overflow-hidden relative">
+      <Navbar />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
+      <main className="flex-1 flex flex-col overflow-hidden w-full pb-16 lg:pb-0">
         <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setMobileOpen(true)}
-              className="p-2 hover:bg-stone-100 rounded-lg lg:hidden"
-            >
-              <MenuIcon className="w-6 h-6 text-stone-600" />
-            </button>
             <h2 className="text-lg font-bold text-stone-800 truncate">
               {navItems.find(i => i.path === location.pathname)?.label || 'Dashboard'}
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <button 
-              onClick={toggleFullScreen}
-              className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"
-              title="Toàn màn hình"
-            >
-              {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </button>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-stone-800">{pb.authStore.model?.username}</p>
               <p className="text-xs text-stone-500 capitalize">{pb.authStore.model?.role}</p>

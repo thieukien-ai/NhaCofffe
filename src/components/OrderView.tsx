@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 
+import Navbar from './Navbar';
+
 export default function OrderView() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -23,27 +25,10 @@ export default function OrderView() {
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [queueCount, setQueueCount] = useState(0);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const navigate = useNavigate();
   const user = pb.authStore.model;
   const [showCart, setShowCart] = useState(!user);
   const itemsPerPage = 1000;
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
-      });
-      setIsFullScreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullScreen(false);
-      }
-    }
-  };
 
   useEffect(() => {
     fetchData();
@@ -97,13 +82,6 @@ export default function OrderView() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const unsubscribeQueue = (pb as any).onQueueChange((count: number) => {
-      setQueueCount(count);
-    });
-    return () => unsubscribeQueue();
-  }, []);
 
   const addToCart = (item: MenuItem) => {
     if (myOrder) {
@@ -209,79 +187,14 @@ export default function OrderView() {
     return matchesSearch && matchesCategory && item.available;
   });
 
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const displayItems = filteredItems; // Hiển thị tất cả món để có thể cuộn
-
-  useEffect(() => {
-    // Reset scroll or other logic if needed
-  }, [search, activeCategory]);
-
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      const synced = await (pb as any).sync();
-      if (synced) {
-        toast.success('Đã đồng bộ dữ liệu thành công!');
-      } else {
-        toast.info('Dữ liệu đã được đồng bộ.');
-      }
-    } catch (e) {
-      toast.error('Lỗi khi đồng bộ dữ liệu');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  const displayItems = filteredItems;
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-secondary overflow-hidden">
-      {/* Sidebar / Navigation - Desktop: Side, Mobile: Bottom */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-primary flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-white/60 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none">
-        <button 
-          onClick={() => navigate('/')}
-          className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
-        >
-          <Home className="w-6 h-6 lg:w-8 lg:h-8" />
-        </button>
-        <button 
-          onClick={() => setShowCart(!showCart)}
-          className={`p-3 rounded-2xl transition-all ${showCart ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-white/60'}`}
-        >
-          <ShoppingCart className="w-6 h-6" />
-        </button>
-        <button 
-          onClick={toggleFullScreen}
-          className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white/60"
-          title="Toàn màn hình"
-        >
-          {isFullScreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
-        </button>
-        {user && (
-          <button 
-            onClick={() => navigate(user.role === 'admin' ? '/admin' : user.role === 'barista' ? '/barista' : user.role === 'cast' ? '/admin' : '/staff')}
-            className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white/60"
-            title="Bảng điều khiển"
-          >
-            <TrendingUp className="w-6 h-6" />
-          </button>
-        )}
-        <div className="lg:mt-auto">
-          {user ? (
-            <button 
-              onClick={handleLogout}
-              className="p-3 hover:bg-red-500/20 hover:text-red-400 rounded-2xl transition-all"
-            >
-              <LogOut className="w-6 h-6" />
-            </button>
-          ) : (
-            <button 
-              onClick={() => navigate('/login')}
-              className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white"
-            >
-              <LogIn className="w-6 h-6" />
-            </button>
-          )}
-        </div>
-      </nav>
+      <Navbar 
+        onCartToggle={() => setShowCart(!showCart)} 
+        cartCount={cart.reduce((s, i) => s + i.quantity, 0)} 
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
@@ -289,20 +202,6 @@ export default function OrderView() {
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-stone-100 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-serif text-primary">Thực đơn</h1>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleSync}
-              className={`relative ${isSyncing ? 'animate-spin' : ''}`}
-              title="Đồng bộ ngay"
-            >
-              <RefreshCw className="w-5 h-5 text-stone-400" />
-              {queueCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
-                  {queueCount}
-                </span>
-              )}
-            </Button>
           </div>
           <div className="flex items-center space-x-4 w-1/2 max-w-md">
             <div className="relative w-full">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Share, Maximize2, Minimize2, X, Info } from 'lucide-react';
+import { Share, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -76,17 +76,6 @@ export default function PWAHelper() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <div className="fixed top-4 right-4 z-[60] flex gap-2">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={toggleFullscreen}
-          className="bg-white/80 backdrop-blur-md border-stone-200 rounded-full shadow-lg hover:bg-white"
-        >
-          {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-        </Button>
-      </div>
     </>
   );
 }
