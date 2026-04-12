@@ -98,6 +98,8 @@ export default function Navbar({ onCartToggle, cartCount = 0 }: NavbarProps) {
     { icon: Package, label: 'Nguyên liệu', path: '/admin/ingredients', show: true },
     { icon: Receipt, label: 'Đơn hàng', path: '/admin/orders', show: true },
     { icon: TrendingUp, label: 'Tài chính', path: '/admin/expenses', show: true },
+    { icon: Coffee, label: 'Pha chế', path: '/barista', show: true },
+    { icon: User, label: 'Phục vụ', path: '/staff', show: true },
     { icon: Users, label: 'Nhân viên', path: '/admin/staff', show: user?.role === 'admin' },
   ];
 

@@ -51,8 +51,8 @@ export default function StaffView() {
         expand: 'order_items_via_order.menu_item'
       });
 
-      // Role-based filtering for staff
-      if (user?.role === 'staff') {
+      // Role-based filtering for staff and cast
+      if (user?.role === 'staff' || user?.role === 'cast') {
         data = data.filter(order => 
           order.expand?.order_items_via_order?.some(item => item.status === 'ready')
         );

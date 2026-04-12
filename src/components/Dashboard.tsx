@@ -7,6 +7,7 @@ import {
   DollarSign, 
   ShoppingCart, 
   Users, 
+  User,
   Coffee,
   Receipt,
   Settings,
@@ -61,6 +62,8 @@ export default function Dashboard() {
     { label: 'Nguyên liệu', icon: ShoppingCart, path: '/admin/ingredients', color: 'bg-blue-500' },
     { label: 'Đơn hàng', icon: Receipt, path: '/admin/orders', color: 'bg-purple-500' },
     { label: 'Chi phí', icon: TrendingDown, path: '/admin/expenses', color: 'bg-red-500' },
+    { label: 'Pha chế', icon: Coffee, path: '/barista', color: 'bg-emerald-500' },
+    { label: 'Phục vụ', icon: User, path: '/staff', color: 'bg-amber-500' },
     { label: 'Nhân viên', icon: Users, path: '/admin/staff', color: 'bg-indigo-500' },
     { label: 'Cài đặt', icon: Settings, path: '/admin/settings', color: 'bg-stone-600' },
   ];

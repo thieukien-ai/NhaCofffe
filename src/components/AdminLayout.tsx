@@ -48,7 +48,8 @@ export default function AdminLayout() {
     { icon: Package, label: 'Nhập nguyên liệu', path: '/admin/ingredients', show: true },
     { icon: Receipt, label: 'Lịch sử đơn hàng', path: '/admin/orders', show: true },
     { icon: TrendingUp, label: 'Chi phí & Doanh thu', path: '/admin/expenses', show: true },
-    { icon: User, label: 'Theo dõi đơn (Staff)', path: '/staff', show: true },
+    { icon: Coffee, label: 'Màn hình Pha chế', path: '/barista', show: true },
+    { icon: User, label: 'Màn hình Phục vụ', path: '/staff', show: true },
     { icon: Users, label: 'Nhân viên', path: '/admin/staff', show: pb.authStore.model?.role === 'admin' },
     { icon: Settings, label: 'Cài đặt', path: '/admin/settings', show: true },
   ];
