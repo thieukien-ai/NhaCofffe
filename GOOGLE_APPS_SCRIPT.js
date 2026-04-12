@@ -1,14 +1,16 @@
 /**
  * GOOGLE APPS SCRIPT FOR COFFEE POS
  * 
- * HƯỚNG DẪN CÀI ĐẶT:
+ * HƯỚNG DẪN CÀI ĐẶT (QUAN TRỌNG):
  * 1. Tạo một Google Sheet mới.
  * 2. Vào Extensions -> Apps Script.
  * 3. Xóa hết mã cũ và dán mã này vào.
  * 4. Bấm "Deploy" -> "New Deployment".
  * 5. Chọn Type là "Web App".
- * 6. Phần "Who has access" chọn "Anyone" (Quan trọng).
- * 7. Copy URL nhận được và dán vào file .env (VITE_GOOGLE_SHEET_API_URL).
+ * 6. Phần "Execute as" chọn "Me" (Cực kỳ quan trọng).
+ * 7. Phần "Who has access" chọn "Anyone" (Cực kỳ quan trọng).
+ * 8. Bấm "Deploy". Nếu Google hỏi quyền, hãy bấm "Review Permissions" -> chọn tài khoản -> "Advanced" -> "Go to Coffee POS (unsafe)" -> "Allow".
+ * 9. Copy URL nhận được (có đuôi /exec) và dán vào biến VITE_GOOGLE_SHEET_API_URL trên Vercel/AI Studio.
  */
 
 const SPREADSHEET = SpreadsheetApp.getActiveSpreadsheet();
@@ -94,6 +96,17 @@ function doPost(e) {
       return deleteData(sheetName, data.id);
     } else if (action === 'auth') {
       return handleAuth(data.identity, data.password);
+    } else if (action === 'read') {
+      return readData(sheetName);
+    } else if (action === 'batch_read') {
+      const sheets = data.sheets || [];
+      const result = {};
+      sheets.forEach(name => {
+        result[name] = getReadData(name);
+      });
+      return createResponse(result);
+    } else if (action === 'seed_data') {
+      return generateSeedData();
     }
     
     return createResponse({ error: 'Invalid action' });
@@ -205,9 +218,9 @@ function getOrCreateSheet(name) {
     sheet = SPREADSHEET.insertSheet(name);
     // Khởi tạo headers dựa trên bảng
     const defaultHeaders = {
-      'users': ['id', 'username', 'email', 'password', 'role', 'created', 'updated'],
+      'users': ['id', 'username', 'email', 'password', 'role', 'full_name', 'phone', 'address', 'created', 'updated'],
       'categories': ['id', 'name', 'icon', 'created', 'updated'],
-      'menu_items': ['id', 'name', 'description', 'price', 'cost_price', 'category', 'available', 'created', 'updated'],
+      'menu_items': ['id', 'name', 'description', 'price', 'cost_price', 'category', 'available', 'image', 'created', 'updated'],
       'orders': ['id', 'table_number', 'status', 'total_amount', 'payment_status', 'notes', 'created', 'updated'],
       'order_items': ['id', 'order', 'menu_item', 'quantity', 'price_at_order', 'status', 'notes', 'created', 'updated'],
       'expenses': ['id', 'type', 'amount', 'description', 'date', 'created', 'updated'],
@@ -216,7 +229,8 @@ function getOrCreateSheet(name) {
       'staff': ['id', 'name', 'phone', 'role', 'salary_rate', 'status', 'created', 'updated'],
       'staff_details': ['id', 'user_id', 'full_name', 'address', 'phone', 'join_date', 'salary', 'status', 'created', 'updated'],
       'ingredients': ['id', 'menu_item_id', 'name', 'quantity_needed', 'unit', 'created', 'updated'],
-      'customers': ['id', 'name', 'phone', 'last_order_date', 'total_spent', 'created', 'updated']
+      'customers': ['id', 'name', 'phone', 'last_order_date', 'total_spent', 'created', 'updated'],
+      'settings': ['id', 'key', 'value', 'created', 'updated']
     };
     if (defaultHeaders[name]) {
       sheet.appendRow(defaultHeaders[name]);

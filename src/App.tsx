@@ -3,6 +3,27 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import pb from '@/lib/pocketbase';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import { Wifi, WifiOff, AlertCircle } from 'lucide-react';
+
+function ConnectionStatus() {
+  const [status, setStatus] = useState<'connected' | 'error' | 'offline'>('offline');
+
+  useEffect(() => {
+    const unsubscribe = (pb as any).onConnectionChange((s: any) => setStatus(s));
+    return () => unsubscribe();
+  }, []);
+
+  if (status === 'connected') return null;
+
+  return (
+    <div className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg animate-in fade-in slide-in-from-top-4 duration-300 ${
+      status === 'error' ? 'bg-red-500 text-white' : 'bg-stone-500 text-white'
+    }`}>
+      {status === 'error' ? <AlertCircle className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+      {status === 'error' ? 'Lỗi kết nối Google Sheets' : 'Đang ngoại tuyến'}
+    </div>
+  );
+}
 import Login from '@/components/Login';
 import Dashboard from '@/components/Dashboard';
 import OrderView from '@/components/OrderView';
@@ -12,9 +33,10 @@ import MenuManagement from '@/components/MenuManagement';
 import ExpenseManagement from '@/components/ExpenseManagement';
 import StaffManagement from '@/components/StaffManagement';
 import OrderHistory from '@/components/OrderHistory';
-import SetupInstructions from '@/components/SetupInstructions';
 import IngredientManagement from '@/components/IngredientManagement';
 import StaffView from '@/components/StaffView';
+import Settings from '@/components/Settings';
+import PWAHelper from '@/components/PWAHelper';
 import { User } from '@/types';
 
 export default function App() {
@@ -40,10 +62,19 @@ export default function App() {
 
       apiUrl = apiUrl.trim().replace(/\/+$/, '');
       
+      if (apiUrl.includes('/dev')) {
+        toast.error('CẢNH BÁO: Bạn đang dùng URL kết thúc bằng /dev. Hãy dùng URL kết thúc bằng /exec để tránh lỗi đăng nhập.', { duration: 10000 });
+      }
+      
       try {
         console.log('Testing connection to:', apiUrl);
-        const fetchUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=read&sheet=users`;
-        const response = await fetch(fetchUrl);
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'read', sheet: 'users' }),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          mode: 'cors',
+          credentials: 'omit'
+        });
         
         if (response.ok) {
           const data = await response.json();
@@ -62,7 +93,11 @@ export default function App() {
         }
       } catch (error) {
         console.error('Fetch error:', error);
-        toast.error('Không thể kết nối tới Apps Script. Đảm bảo bạn đã Deploy là "Anyone".');
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          toast.error('LỖI CORS: Không thể kết nối tới Apps Script. Hãy kiểm tra: 1. Deploy là "Anyone". 2. Execute as là "Me". 3. Link URL chính xác.', { duration: 10000 });
+        } else {
+          toast.error('Không thể kết nối tới Apps Script. Đảm bảo bạn đã Deploy đúng cách.');
+        }
       }
     };
 
@@ -87,23 +122,39 @@ export default function App() {
   return (
     <Router>
       <div className="min-h-screen bg-stone-50 font-sans text-stone-900">
+        <ConnectionStatus />
+        <PWAHelper />
         <Routes>
-          <Route path="/login" element={<Login />} />
-          
           <Route path="/" element={<OrderView />} />
+          <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'barista' ? '/barista' : user.role === 'cast' ? '/admin' : '/staff'} /> : <Login />} />
           
-          <Route path="/barista" element={user ? <BaristaView /> : <Navigate to="/login" />} />
-          <Route path="/staff" element={user ? <StaffView /> : <Navigate to="/login" />} />
+          <Route path="/barista" element={
+            user && (user.role === 'admin' || user.role === 'barista' || user.role === 'cast') 
+              ? <BaristaView /> 
+              : <Navigate to="/login" />
+          } />
+          <Route path="/staff" element={
+            user && (user.role === 'admin' || user.role === 'barista' || user.role === 'staff' || user.role === 'cast') 
+              ? <StaffView /> 
+              : <Navigate to="/login" />
+          } />
+          <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
           
-          <Route path="/admin" element={user?.role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
+          <Route path="/admin" element={
+            user && (user.role === 'admin' || user.role === 'cast') 
+              ? <AdminLayout /> 
+              : <Navigate to="/login" />
+          }>
             <Route index element={<Dashboard />} />
             <Route path="menu" element={<MenuManagement />} />
             <Route path="ingredients" element={<IngredientManagement />} />
             <Route path="expenses" element={<ExpenseManagement />} />
             <Route path="staff" element={<StaffManagement />} />
             <Route path="orders" element={<OrderHistory />} />
-            <Route path="settings" element={<SetupInstructions />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
+          
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         <Toaster 
           position="bottom-center"

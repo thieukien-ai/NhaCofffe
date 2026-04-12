@@ -30,6 +30,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, UserPlus, Trash2, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function StaffManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -142,12 +143,15 @@ export default function StaffManagement() {
           Danh sách nhân viên
         </h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()} className="bg-stone-800 text-stone-50">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Thêm nhân viên
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger 
+            nativeButton={false}
+            render={
+              <Button onClick={() => handleOpenDialog()} className="bg-stone-800 text-stone-50">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Thêm nhân viên
+              </Button>
+            }
+          />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới'}</DialogTitle>
@@ -263,6 +267,3 @@ export default function StaffManagement() {
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
-}

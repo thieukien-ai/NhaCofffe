@@ -19,9 +19,12 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await pb.collection('users').authWithPassword(identity, password);
+      const authData = await pb.collection('users').authWithPassword(identity, password);
       toast.success('Đăng nhập thành công');
-      navigate('/');
+      const role = authData.record.role;
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'barista') navigate('/barista');
+      else navigate('/staff');
     } catch (error: any) {
       toast.error('Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu');
       console.error('Login error:', error);
@@ -50,10 +53,10 @@ export default function Login() {
           <CardContent className="p-8">
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="identity" className="text-stone-600">Tên đăng nhập / SĐT</Label>
+                <Label htmlFor="identity" className="text-stone-600">Tên hoặc số điện thoại</Label>
                 <Input
                   id="identity"
-                  placeholder="SA hoặc email..."
+                  placeholder="Tên hoặc số điện thoại..."
                   value={identity}
                   onChange={(e) => setIdentity(e.target.value)}
                   className="h-12 rounded-2xl border-stone-200 focus:ring-primary"

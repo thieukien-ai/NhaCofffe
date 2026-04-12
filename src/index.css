@@ -30,12 +30,40 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
+    /* Better scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif font-medium;
+  }
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-stone-200 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-stone-300;
+}
+
+/* PWA Fullscreen tweaks */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

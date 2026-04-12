@@ -11,31 +11,69 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Printer, Search, Eye, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import { Printer, Search, Eye, CheckCircle2, XCircle, Trash2, Loader2, ShoppingCart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useReactToPrint } from 'react-to-print';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { ReceiptPrinter } from './ReceiptPrinter';
 
 export default function OrderHistory() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [receiptConfig, setReceiptConfig] = useState({
+    shopName: 'COFFEE SHOP',
+    address: '123 Đường Cà Phê, Quận 1, TP.HCM',
+    phone: '0123 456 789',
+    footer: 'Cảm ơn quý khách! Hẹn gặp lại.'
+  });
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchOrders();
+    fetchReceiptConfig();
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchReceiptConfig = async () => {
     try {
+      const data = await pb.collection('settings').getFullList({ filter: 'key = "receipt_config"' });
+      if (data.length > 0) {
+        setReceiptConfig(JSON.parse((data[0] as any).value));
+      }
+    } catch (e) {
+      console.error('Error fetching receipt config:', e);
+    }
+  };
+
+  const fetchOrders = async (manual = false) => {
+    if (manual) setIsRefreshing(true);
+    else setLoading(true);
+    
+    try {
+      // Clear cache to force fresh fetch if manual
+      if (manual) {
+        delete (pb as any).cache?.['orders'];
+      }
+      
       const data = await pb.collection('orders').getFullList<Order>({
         sort: '-created',
         expand: 'order_items_via_order.menu_item'
       });
-      setOrders(data);
+      
+      const validOrders = Array.isArray(data) ? data : [];
+      setOrders(validOrders);
+      
+      if (manual) toast.success('Đã cập nhật dữ liệu mới nhất');
     } catch (error) {
       console.error('Error fetching orders:', error);
+      toast.error('Lỗi khi tải lịch sử đơn hàng');
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -56,7 +94,7 @@ export default function OrderHistory() {
   };
 
   const filteredOrders = orders.filter(o => 
-    o.table_number.includes(search) || 
+    String(o.table_number).includes(search) || 
     o.id.includes(search)
   );
 
@@ -81,15 +119,36 @@ export default function OrderHistory() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
           <Input 
             placeholder="Tìm kiếm theo bàn hoặc mã đơn..." 
-            className="pl-10 bg-white border-stone-200"
+            className="pl-10 bg-white border-stone-200 rounded-2xl"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => fetchOrders(true)}
+          className="rounded-2xl border-stone-200 text-stone-600"
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Làm mới
+        </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-        <Table>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-stone-400">
+            <Loader2 className="w-10 h-10 animate-spin mb-4" />
+            <p>Đang tải lịch sử đơn hàng...</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-stone-400">
+            <ShoppingCart className="w-12 h-12 mb-4 opacity-20" />
+            <p>Không tìm thấy đơn hàng nào</p>
+          </div>
+        ) : (
+          <Table>
           <TableHeader className="bg-stone-50">
             <TableRow>
               <TableHead>Mã đơn</TableHead>
@@ -104,7 +163,9 @@ export default function OrderHistory() {
             {filteredOrders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-mono text-xs text-stone-500">#{order.id.slice(-6)}</TableCell>
-                <TableCell className="text-stone-600">{format(new Date(order.created), 'HH:mm dd/MM')}</TableCell>
+                <TableCell className="text-stone-600">
+                  {order.created ? format(new Date(order.created), 'HH:mm dd/MM') : '---'}
+                </TableCell>
                 <TableCell className="font-bold text-stone-800">{order.table_number}</TableCell>
                 <TableCell>{order.total_amount.toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
@@ -125,82 +186,30 @@ export default function OrderHistory() {
                     >
                       <Printer className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDeleteOrder(order.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {pb.authStore.model?.role === 'admin' && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeleteOrder(order.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        )}
       </div>
 
       {/* Hidden Print Template */}
-      <div className="hidden">
-        <div ref={printRef} className="p-8 text-stone-800 font-sans max-w-[400px] mx-auto">
-          <div className="text-center space-y-2 mb-6 border-b border-dashed border-stone-300 pb-6">
-            <h1 className="text-2xl font-bold uppercase tracking-widest">Coffee POS</h1>
-            <p className="text-sm">123 Đường Cà Phê, Quận 1, TP.HCM</p>
-            <p className="text-sm">ĐT: 0123 456 789</p>
-          </div>
-          
-          <div className="space-y-1 mb-6 text-sm">
-            <div className="flex justify-between">
-              <span>Mã đơn:</span>
-              <span className="font-bold">#{selectedOrder?.id.slice(-6)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Bàn:</span>
-              <span className="font-bold">{selectedOrder?.table_number}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Ngày:</span>
-              <span>{selectedOrder && format(new Date(selectedOrder.created), 'dd/MM/yyyy HH:mm')}</span>
-            </div>
-          </div>
-
-          <table className="w-full text-sm mb-6">
-            <thead className="border-b border-stone-200">
-              <tr>
-                <th className="text-left py-2">Món</th>
-                <th className="text-center py-2">SL</th>
-                <th className="text-right py-2">Tiền</th>
-              </tr>
-            </thead>
-            <tbody className="border-b border-stone-200">
-              {selectedOrder?.expand?.order_items_via_order?.map((item) => (
-                <tr key={item.id}>
-                  <td className="py-2">{item.expand?.menu_item?.name}</td>
-                  <td className="text-center py-2">{item.quantity}</td>
-                  <td className="text-right py-2">{(item.price_at_order * item.quantity).toLocaleString('vi-VN')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="space-y-2 font-bold">
-            <div className="flex justify-between text-lg">
-              <span>TỔNG CỘNG:</span>
-              <span>{selectedOrder?.total_amount.toLocaleString('vi-VN')}đ</span>
-            </div>
-          </div>
-
-          <div className="mt-10 text-center space-y-2 border-t border-dashed border-stone-300 pt-6">
-            <p className="text-sm italic">Cảm ơn quý khách!</p>
-            <p className="text-xs text-stone-400">Hẹn gặp lại quý khách lần sau</p>
-          </div>
-        </div>
+      <div className="opacity-0 pointer-events-none absolute -z-50">
+        <ReceiptPrinter ref={printRef} order={selectedOrder} config={receiptConfig} />
       </div>
     </div>
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
-}

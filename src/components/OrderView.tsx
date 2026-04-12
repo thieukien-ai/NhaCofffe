@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp, Home, User, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Coffee, LogIn, LogOut, ClipboardList, User as UserIcon, CheckCircle, TrendingUp, Home, User, RefreshCw, Maximize, Minimize } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -25,10 +25,25 @@ export default function OrderView() {
   const [myOrder, setMyOrder] = useState<{ id: string; name: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [queueCount, setQueueCount] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const navigate = useNavigate();
   const user = pb.authStore.model;
   const [showCart, setShowCart] = useState(!user);
   const itemsPerPage = 1000;
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullScreen(false);
+      }
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -36,6 +51,16 @@ export default function OrderView() {
     if (savedOrder) {
       setMyOrder(JSON.parse(savedOrder));
     }
+
+    // Quick guide notifications
+    const timer = setTimeout(() => {
+      toast.info('Chào mừng! Bạn có thể chọn món và nhập tên để đặt hàng ngay.', {
+        description: 'Bấm vào món ăn để thêm vào giỏ hàng.',
+        duration: 5000,
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchData = async () => {
@@ -212,7 +237,7 @@ export default function OrderView() {
       {/* Sidebar / Navigation - Desktop: Side, Mobile: Bottom */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-primary flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-white/60 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none">
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="p-3 bg-white/10 rounded-2xl text-white hover:bg-white/20 transition-all"
         >
           <Home className="w-6 h-6 lg:w-8 lg:h-8" />
@@ -223,26 +248,18 @@ export default function OrderView() {
         >
           <ShoppingCart className="w-6 h-6" />
         </button>
+        <button 
+          onClick={toggleFullScreen}
+          className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white/60"
+          title="Toàn màn hình"
+        >
+          {isFullScreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+        </button>
         {user && (
           <button 
-            onClick={() => navigate('/barista')}
-            className="p-3 hover:bg-white/10 rounded-2xl transition-all"
-          >
-            <ClipboardList className="w-6 h-6" />
-          </button>
-        )}
-        {user && (
-          <button 
-            onClick={() => navigate('/staff')}
-            className="p-3 hover:bg-white/10 rounded-2xl transition-all"
-          >
-            <User className="w-6 h-6" />
-          </button>
-        )}
-        {user?.username === 'SA' && (
-          <button 
-            onClick={() => navigate('/admin')}
-            className="p-3 hover:bg-white/10 rounded-2xl transition-all"
+            onClick={() => navigate(user.role === 'admin' ? '/admin' : user.role === 'barista' ? '/barista' : user.role === 'cast' ? '/admin' : '/staff')}
+            className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white/60"
+            title="Bảng điều khiển"
           >
             <TrendingUp className="w-6 h-6" />
           </button>
@@ -365,7 +382,7 @@ export default function OrderView() {
                     <div className="aspect-square bg-stone-100 relative overflow-hidden">
                       {item.image ? (
                         <img 
-                          src={pb.files.getUrl(item, item.image)} 
+                          src={item.image.startsWith('http') ? item.image : pb.files.getUrl(item, item.image)} 
                           alt={item.name} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           referrerPolicy="no-referrer"

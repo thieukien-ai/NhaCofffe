@@ -13,17 +13,46 @@ import {
   TrendingUp,
   Package,
   Home,
-  User
+  User,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullScreen(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Quick guide for admin
+    const timer = setTimeout(() => {
+      toast.info('Bảng điều khiển quản trị', {
+        description: 'Sử dụng thanh bên hoặc các nút truy cập nhanh để quản lý cửa hàng.',
+        duration: 5000,
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogout = () => {
     pb.authStore.clear();
@@ -61,7 +90,7 @@ export default function AdminLayout() {
       >
         <div className="h-16 flex items-center px-6 border-b border-stone-800 shrink-0 gap-3">
           <button 
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="p-1.5 bg-stone-800 rounded-lg text-orange-400 hover:text-orange-300 transition-colors"
           >
             <Home className="w-5 h-5" />
@@ -127,6 +156,13 @@ export default function AdminLayout() {
             </h2>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleFullScreen}
+              className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"
+              title="Toàn màn hình"
+            >
+              {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            </button>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-stone-800">{pb.authStore.model?.username}</p>
               <p className="text-xs text-stone-500 capitalize">{pb.authStore.model?.role}</p>

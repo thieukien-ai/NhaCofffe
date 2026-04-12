@@ -49,6 +49,7 @@ export default function ExpenseManagement() {
   }, []);
 
   const fetchExpenses = async () => {
+    setLoading(true);
     try {
       const data = await pb.collection('expenses').getFullList<Expense>({ sort: '-date' });
       setExpenses(data);
@@ -126,12 +127,15 @@ export default function ExpenseManagement() {
         
         <div className="flex flex-col justify-center">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full h-full bg-stone-800 hover:bg-stone-700 text-stone-50 text-lg font-bold rounded-2xl py-8 shadow-lg shadow-stone-200">
-                <Plus className="w-6 h-6 mr-2" />
-                Thêm chi phí
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+              nativeButton={false}
+              render={
+                <Button className="w-full h-full bg-stone-800 hover:bg-stone-700 text-stone-50 text-lg font-bold rounded-2xl py-8 shadow-lg shadow-stone-200">
+                  <Plus className="w-6 h-6 mr-2" />
+                  Thêm chi phí
+                </Button>
+              }
+            />
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Thêm khoản chi mới</DialogTitle>
@@ -244,13 +248,6 @@ export default function ExpenseManagement() {
                 </TableCell>
               </TableRow>
             ))}
-            {filteredExpenses.length === 0 && !loading && (
-              <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-stone-400">
-                  Chưa có dữ liệu chi phí
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>

@@ -121,15 +121,18 @@ export default function MenuManagement() {
           />
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              className="bg-stone-800 hover:bg-stone-700 text-stone-50"
-              onClick={() => setEditingItem({ name: '', price: 0, description: '', category: categories[0]?.id })}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Thêm món mới
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger 
+            nativeButton={false}
+            render={
+              <Button 
+                className="bg-stone-800 hover:bg-stone-700 text-stone-50"
+                onClick={() => setEditingItem({ name: '', price: 0, description: '', category: categories[0]?.id })}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Thêm món mới
+              </Button>
+            }
+          />
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>{editingItem?.id ? 'Chỉnh sửa món' : 'Thêm món mới'}</DialogTitle>
@@ -215,7 +218,12 @@ export default function MenuManagement() {
                 <TableCell>
                   <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center overflow-hidden">
                     {item.image ? (
-                      <img src={pb.files.getUrl(item, item.image)} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img 
+                        src={item.image.startsWith('http') ? item.image : pb.files.getUrl(item, item.image)} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
                     ) : (
                       <Coffee className="w-5 h-5 text-stone-400" />
                     )}

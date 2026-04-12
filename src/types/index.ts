@@ -78,4 +78,8 @@ export interface User {
   username: string;
   email: string;
   role: 'admin' | 'staff' | 'barista';
+  full_name?: string;
+  phone?: string;
+  address?: string;
+  password?: string;
 }

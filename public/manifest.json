@@ -1,0 +1,17 @@
+{
+  "name": "Coffee POS Management System",
+  "short_name": "Coffee POS",
+  "description": "Hệ thống quản lý quán cà phê chuyên nghiệp",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#292524",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/924/924514.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

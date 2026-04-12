@@ -5,21 +5,45 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart, Home, RefreshCw } from 'lucide-react';
+import { Coffee, CheckCircle2, Clock, ChevronRight, LogOut, ShoppingCart, Home, RefreshCw, Settings, Maximize, Minimize } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function BaristaView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [queueCount, setQueueCount] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const navigate = useNavigate();
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullScreen(false);
+      }
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
+
+    // Quick guide for barista
+    const timer = setTimeout(() => {
+      toast.info('Giao diện pha chế', {
+        description: 'Bấm "Pha" để bắt đầu và "Xong" khi hoàn thành món.',
+        duration: 5000,
+      });
+    }, 2000);
 
     // Subscribe to real-time updates
     pb.collection('orders').subscribe('*', (e) => {
@@ -83,20 +107,33 @@ export default function BaristaView() {
   };
 
   const updateItemStatus = async (itemId: string, status: OrderItem['status']) => {
+    // Optimistic update
+    setOrders(prev => prev.map(order => ({
+      ...order,
+      expand: {
+        ...order.expand,
+        order_items_via_order: order.expand?.order_items_via_order?.map(item => 
+          item.id === itemId ? { ...item, status } : item
+        )
+      }
+    })));
+
     try {
       await pb.collection('order_items').update(itemId, { status });
       toast.success('Đã cập nhật trạng thái món');
-      fetchOrders(); // Refresh to show changes
     } catch (error) {
       toast.error('Lỗi khi cập nhật trạng thái món');
+      fetchOrders(); // Revert on error
     }
   };
 
   const updateStatus = async (orderId: string, status: Order['status']) => {
+    // Optimistic update
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+
     try {
       await pb.collection('orders').update(orderId, { status });
       if (status === 'completed') {
-        // Mark all items as ready if order is completed
         const order = orders.find(o => o.id === orderId);
         if (order?.expand?.order_items_via_order) {
           await Promise.all(order.expand.order_items_via_order.map(item => 
@@ -105,9 +142,9 @@ export default function BaristaView() {
         }
       }
       toast.success(`Đã cập nhật trạng thái: ${status}`);
-      fetchOrders();
     } catch (error) {
       toast.error('Lỗi khi cập nhật trạng thái');
+      fetchOrders(); // Revert on error
     }
   };
 
@@ -128,19 +165,32 @@ export default function BaristaView() {
       {/* Sidebar - Desktop: Side, Mobile: Bottom */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-950 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-8 text-stone-500 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.3)] lg:shadow-none">
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="p-2 bg-stone-800 rounded-xl text-orange-400 hover:text-orange-300 transition-colors"
         >
           <Home className="w-6 h-6 lg:w-8 lg:h-8" />
         </button>
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="p-3 hover:bg-stone-800 rounded-xl transition-colors"
         >
           <ShoppingCart className="w-6 h-6" />
         </button>
         <button className="p-3 bg-stone-800 rounded-xl transition-colors text-stone-50">
           <ClipboardList className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={() => navigate('/settings')}
+          className="p-3 hover:bg-stone-800 rounded-xl transition-colors text-stone-500"
+        >
+          <Settings className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={toggleFullScreen}
+          className="p-3 hover:bg-stone-800 rounded-xl transition-colors text-stone-500"
+          title="Toàn màn hình"
+        >
+          {isFullScreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
         </button>
         <div className="lg:mt-auto">
           <button 
@@ -154,9 +204,9 @@ export default function BaristaView() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden pb-16 lg:pb-0">
-        <header className="h-16 bg-stone-950 border-b border-stone-800 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">Khu vực Pha chế</h1>
+        <header className="h-16 bg-stone-950 border-b border-stone-800 flex items-center justify-between px-4 sm:px-8 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <h1 className="text-lg sm:text-xl font-bold truncate">Pha chế</h1>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -171,12 +221,18 @@ export default function BaristaView() {
                 </span>
               )}
             </Button>
-            <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10">
-              {orders.length} Đơn đang chờ
+            <Badge variant="outline" className="hidden sm:flex border-orange-500/50 text-orange-400 bg-orange-500/10">
+              {orders.length} Đơn
             </Badge>
           </div>
-          <div className="text-sm text-stone-400">
-            {format(new Date(), 'HH:mm - dd/MM/yyyy')}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block text-right">
+              <div className="text-xs text-stone-300 font-bold">{pb.authStore.model?.username}</div>
+              <div className="text-[10px] text-stone-500 uppercase tracking-wider">{pb.authStore.model?.role}</div>
+            </div>
+            <div className="text-xs sm:text-sm text-stone-400">
+              {format(new Date(), 'HH:mm')}
+            </div>
           </div>
         </header>
 
@@ -193,81 +249,62 @@ export default function BaristaView() {
                     exit={{ opacity: 0, scale: 0.95 }}
                   >
                     <Card className="bg-stone-800 border-stone-700 shadow-xl overflow-hidden">
-                      <CardHeader className="p-4 border-b border-stone-700 flex flex-row items-center justify-between bg-stone-800/50">
+                      <CardHeader className="p-3 border-b border-stone-700 flex flex-row items-center justify-between bg-stone-800/50">
                         <div>
-                          <CardTitle className="text-lg text-stone-100">Bàn {order.table_number}</CardTitle>
-                          <div className="flex flex-col gap-1 mt-1">
-                            <div className="flex items-center gap-2 text-xs text-stone-400">
-                              <Clock className="w-3 h-3" />
+                          <CardTitle className="text-base text-stone-100">Bàn {order.table_number}</CardTitle>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-1 text-[10px] text-stone-400">
+                              <Clock className="w-2.5 h-2.5" />
                               {format(new Date(order.created), 'HH:mm')}
                             </div>
                             {order.notes && order.notes.startsWith('Khách hàng:') && (
-                              <div className="text-xs font-bold text-orange-400">
-                                {order.notes}
+                              <div className="text-[10px] font-bold text-orange-400 truncate max-w-[100px]">
+                                {order.notes.replace('Khách hàng: ', '')}
                               </div>
                             )}
                           </div>
                         </div>
                         <Badge 
-                          className={
+                          className={cn(
+                            "text-[10px] px-1.5 py-0 h-5",
                             order.status === 'pending' ? 'bg-amber-500/20 text-amber-500 border-amber-500/50' :
                             'bg-blue-500/20 text-blue-500 border-blue-500/50'
-                          }
+                          )}
                         >
-                          {order.status === 'pending' ? 'Chờ xử lý' : 'Đang pha'}
+                          {order.status === 'pending' ? 'Chờ' : 'Pha'}
                         </Badge>
                       </CardHeader>
                       <CardContent className="p-4">
-                        <ul className="space-y-4">
+                        <ul className="space-y-2">
                           {order.expand?.order_items_via_order?.map((item) => (
-                            <li key={item.id} className="flex flex-col gap-2 p-3 rounded-xl bg-stone-900/40 border border-stone-700/50">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-stone-100 text-lg">{item.quantity}x</span>
-                                    <span className="text-stone-300 font-medium">{item.expand?.menu_item?.name}</span>
-                                  </div>
-                                  {item.notes && (
-                                    <p className="text-xs text-orange-400 italic mt-0.5">Note: {item.notes}</p>
-                                  )}
+                            <li key={item.id} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-stone-900/40 border border-stone-700/50">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-stone-100">{item.quantity}x</span>
+                                  <span className="text-stone-300 text-sm truncate">{item.expand?.menu_item?.name}</span>
                                 </div>
-                                <Badge 
-                                  variant="outline"
-                                  className={
-                                    item.status === 'ready' ? 'border-green-500 text-green-500 bg-green-500/10' :
-                                    item.status === 'preparing' ? 'border-blue-500 text-blue-500 bg-blue-500/10' :
-                                    'border-stone-500 text-stone-500'
-                                  }
-                                >
-                                  {item.status === 'ready' ? 'Xong' : item.status === 'preparing' ? 'Đang pha' : 'Chờ'}
-                                </Badge>
+                                {item.notes && (
+                                  <p className="text-[10px] text-orange-400 italic truncate">Note: {item.notes}</p>
+                                )}
                               </div>
                               
-                              <div className="flex gap-2 mt-1">
-                                {item.status !== 'preparing' && item.status !== 'ready' && (
+                              <div className="flex items-center gap-2 shrink-0">
+                                {item.status === 'ready' ? (
+                                  <Badge variant="outline" className="border-green-500 text-green-500 bg-green-500/10 text-[10px] px-1.5 py-0 h-5">Xong</Badge>
+                                ) : (
                                   <Button 
                                     size="sm" 
                                     variant="secondary"
-                                    className="flex-1 h-8 text-xs bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30"
-                                    onClick={() => updateItemStatus(item.id, 'preparing')}
+                                    className={cn(
+                                      "h-7 px-2 text-[10px] font-bold uppercase tracking-wider",
+                                      item.status === 'preparing' 
+                                        ? "bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30" 
+                                        : "bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30"
+                                    )}
+                                    onClick={() => updateItemStatus(item.id, item.status === 'preparing' ? 'ready' : 'preparing')}
                                   >
-                                    Pha chế
+                                    {item.status === 'preparing' ? 'Xong' : 'Pha'}
                                   </Button>
-                                )}
-                                {item.status === 'preparing' && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="secondary"
-                                    className="flex-1 h-8 text-xs bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30"
-                                    onClick={() => updateItemStatus(item.id, 'ready')}
-                                  >
-                                    Xong món
-                                  </Button>
-                                )}
-                                {item.status === 'ready' && (
-                                  <div className="flex-1 flex items-center justify-center h-8 text-xs text-green-500 font-bold">
-                                    <CheckCircle2 className="w-4 h-4 mr-1" /> Chờ phục vụ
-                                  </div>
                                 )}
                               </div>
                             </li>
@@ -311,6 +348,7 @@ export default function BaristaView() {
     </div>
   );
 }
+
 
 function ClipboardList(props: any) {
   return (

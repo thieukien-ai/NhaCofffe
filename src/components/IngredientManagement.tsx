@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import pb from '@/lib/pocketbase';
 import { IngredientImport } from '@/types';
 import { 
@@ -12,20 +12,40 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Package, Calendar, Truck, DollarSign } from 'lucide-react';
+import { Plus, Search, Package, Calendar, Truck, DollarSign, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 export default function IngredientManagement() {
   const [imports, setImports] = useState<IngredientImport[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    quantity: 1,
+    unit: 'kg',
+    price: 0,
+    supplier: '',
+    date: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     fetchImports();
   }, []);
 
   const fetchImports = async () => {
+    setLoading(true);
     try {
       const data = await pb.collection('ingredient_imports').getFullList<IngredientImport>({
         sort: '-date'
@@ -35,6 +55,50 @@ export default function IngredientManagement() {
       console.error('Error fetching imports:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa lượt nhập hàng này?')) return;
+    try {
+      await pb.collection('ingredient_imports').delete(id);
+      toast.success('Đã xóa lượt nhập');
+      fetchImports();
+    } catch (error) {
+      toast.error('Lỗi khi xóa lượt nhập');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await pb.collection('ingredient_imports').create({
+        ...formData,
+        quantity: Number(formData.quantity),
+        price: Number(formData.price)
+      });
+      
+      // Also record as an expense
+      await pb.collection('expenses').create({
+        type: 'ingredient',
+        amount: Number(formData.price) * Number(formData.quantity),
+        description: `Nhập nguyên liệu: ${formData.name} (${formData.quantity} ${formData.unit})`,
+        date: formData.date
+      });
+
+      toast.success('Đã nhập hàng thành công');
+      setIsDialogOpen(false);
+      setFormData({
+        name: '',
+        quantity: 1,
+        unit: 'kg',
+        price: 0,
+        supplier: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+      fetchImports();
+    } catch (error) {
+      toast.error('Lỗi khi nhập hàng');
     }
   };
 
@@ -93,9 +157,90 @@ export default function IngredientManagement() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button className="bg-primary hover:bg-primary/90 rounded-2xl">
-          <Plus className="w-4 h-4 mr-2" /> Nhập hàng mới
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger 
+            nativeButton={false}
+            render={
+              <Button className="bg-primary hover:bg-primary/90 rounded-2xl">
+                <Plus className="w-4 h-4 mr-2" /> Nhập hàng mới
+              </Button>
+            }
+          />
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Nhập nguyên liệu mới</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Tên nguyên liệu</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Ví dụ: Cà phê hạt, Sữa đặc..." 
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Số lượng</Label>
+                  <Input 
+                    id="quantity" 
+                    type="number" 
+                    value={formData.quantity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                    required 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Đơn vị</Label>
+                  <Input 
+                    id="unit" 
+                    placeholder="kg, lít, hộp..." 
+                    value={formData.unit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Đơn giá (VNĐ)</Label>
+                <Input 
+                  id="price" 
+                  type="number" 
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier">Nhà cung cấp</Label>
+                <Input 
+                  id="supplier" 
+                  placeholder="Tên nhà cung cấp..." 
+                  value={formData.supplier}
+                  onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Ngày nhập</Label>
+                <Input 
+                  id="date" 
+                  type="date" 
+                  value={formData.date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  required 
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" className="w-full bg-primary text-white rounded-xl h-12">
+                  Xác nhận nhập hàng
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="coffee-card overflow-hidden">
@@ -108,6 +253,7 @@ export default function IngredientManagement() {
               <TableHead>Đơn giá</TableHead>
               <TableHead>Thành tiền</TableHead>
               <TableHead>Nhà cung cấp</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -123,15 +269,18 @@ export default function IngredientManagement() {
                   {(item.price * item.quantity).toLocaleString('vi-VN')}đ
                 </TableCell>
                 <TableCell className="text-stone-600">{item.supplier}</TableCell>
-              </TableRow>
-            ))}
-            {filteredImports.length === 0 && !loading && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-stone-400">
-                  Không tìm thấy dữ liệu nhập hàng
+                <TableCell className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-stone-400 hover:text-red-600"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
-            )}
+            ))}
           </TableBody>
         </Table>
       </Card>
