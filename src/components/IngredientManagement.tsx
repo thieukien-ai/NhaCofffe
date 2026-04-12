@@ -159,7 +159,7 @@ export default function IngredientManagement() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger 
-            nativeButton={false}
+            nativeButton={true}
             render={
               <Button className="bg-primary hover:bg-primary/90 rounded-2xl">
                 <Plus className="w-4 h-4 mr-2" /> Nhập hàng mới

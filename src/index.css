@@ -78,3 +78,27 @@
 .pill-button {
   @apply rounded-full px-6 py-2 transition-all duration-300 font-medium;
 }
+
+@keyframes progress {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(0.7); }
+  100% { transform: scaleX(1); }
+}
+
+.animate-progress {
+  animation: progress 2s infinite ease-in-out;
+}
+
+.scrollbar-top {
+  transform: rotateX(180deg);
+}
+
+.scrollbar-top > * {
+  transform: rotateX(180deg);
+}
+
+/* Show scrollbar even with scrollbar-hide if needed, but here we want to show it */
+.show-scrollbar::-webkit-scrollbar {
+  display: block;
+  height: 4px;
+}

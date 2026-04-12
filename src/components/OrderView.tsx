@@ -242,7 +242,7 @@ export default function OrderView() {
             </div>
           )}
 
-          <div className="w-full mb-8 overflow-x-auto pb-4 scrollbar-hide shrink-0">
+          <div className="w-full mb-8 overflow-x-auto pb-4 shrink-0 scrollbar-top show-scrollbar">
             <Tabs defaultValue="all" className="w-full" onValueChange={setActiveCategory}>
               <TabsList className="bg-secondary p-2 rounded-2xl h-auto inline-flex whitespace-nowrap gap-2">
                 <TabsTrigger 

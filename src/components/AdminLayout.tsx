@@ -43,15 +43,17 @@ export default function AdminLayout() {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
-    { icon: Coffee, label: 'Quản lý Menu', path: '/admin/menu' },
-    { icon: Package, label: 'Nhập nguyên liệu', path: '/admin/ingredients' },
-    { icon: Receipt, label: 'Lịch sử đơn hàng', path: '/admin/orders' },
-    { icon: TrendingUp, label: 'Chi phí & Doanh thu', path: '/admin/expenses' },
-    { icon: User, label: 'Theo dõi đơn (Staff)', path: '/staff' },
-    { icon: Users, label: 'Nhân viên', path: '/admin/staff' },
-    { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
+    { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin', show: pb.authStore.model?.role === 'admin' },
+    { icon: Coffee, label: 'Quản lý Menu', path: '/admin/menu', show: true },
+    { icon: Package, label: 'Nhập nguyên liệu', path: '/admin/ingredients', show: true },
+    { icon: Receipt, label: 'Lịch sử đơn hàng', path: '/admin/orders', show: true },
+    { icon: TrendingUp, label: 'Chi phí & Doanh thu', path: '/admin/expenses', show: true },
+    { icon: User, label: 'Theo dõi đơn (Staff)', path: '/staff', show: true },
+    { icon: Users, label: 'Nhân viên', path: '/admin/staff', show: pb.authStore.model?.role === 'admin' },
+    { icon: Settings, label: 'Cài đặt', path: '/admin/settings', show: true },
   ];
+
+  const currentNavItem = navItems.find(i => i.path === location.pathname);
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-stone-50 overflow-hidden relative">
@@ -62,7 +64,7 @@ export default function AdminLayout() {
         <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-bold text-stone-800 truncate">
-              {navItems.find(i => i.path === location.pathname)?.label || 'Dashboard'}
+              {currentNavItem?.label || 'Dashboard'}
             </h2>
           </div>
           <div className="flex items-center gap-4">

@@ -10,6 +10,8 @@ class GoogleSheetsDB {
   private isSyncing = false;
   private queueListeners: ((count: number) => void)[] = [];
   private connectionListeners: ((status: 'connected' | 'error' | 'offline') => void)[] = [];
+  private loadingListeners: ((isLoading: boolean) => void)[] = [];
+  private activeRequests = 0;
   private connectionStatus: 'connected' | 'error' | 'offline' = 'offline';
   private STORAGE_KEY = 'coffee_pos_local_db';
   private QUEUE_KEY = 'coffee_pos_write_queue';
@@ -86,12 +88,28 @@ class GoogleSheetsDB {
     };
   }
 
+  onLoadingChange(callback: (isLoading: boolean) => void) {
+    this.loadingListeners.push(callback);
+    callback(this.activeRequests > 0);
+    return () => {
+      this.loadingListeners = this.loadingListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyLoadingChange() {
+    this.loadingListeners.forEach(l => l(this.activeRequests > 0));
+  }
+
   getConnectionStatus() {
     return this.connectionStatus;
   }
 
   private async request(action: string, sheet: string, body?: any) {
-    let apiUrl = this.apiUrl?.trim();
+    this.activeRequests++;
+    this.notifyLoadingChange();
+    
+    try {
+      let apiUrl = this.apiUrl?.trim();
     if (!apiUrl) {
       console.warn('VITE_GOOGLE_SHEET_API_URL is missing. Using LocalStorage fallback.');
       return this.localStorageRequest(action, sheet, body);
@@ -111,52 +129,51 @@ class GoogleSheetsDB {
       return this.cache[sheet].data;
     }
 
-    try {
-      // Ghi dữ liệu: Sử dụng cơ chế Background Sync
-      if (action === 'create' || action === 'update' || action === 'delete') {
-        const requestId = Math.random().toString(36).substr(2, 9);
+    // Ghi dữ liệu: Sử dụng cơ chế Background Sync
+    if (action === 'create' || action === 'update' || action === 'delete') {
+      const requestId = Math.random().toString(36).substr(2, 9);
+      
+      // Cập nhật cache local ngay lập tức để UI phản hồi nhanh
+      if (action === 'create') {
+        const id = body.record.id || requestId;
+        const newRecord = { ...body.record, id, created: new Date().toISOString(), updated: new Date().toISOString() };
         
-        // Cập nhật cache local ngay lập tức để UI phản hồi nhanh
-        if (action === 'create') {
-          const id = body.record.id || requestId;
-          const newRecord = { ...body.record, id, created: new Date().toISOString(), updated: new Date().toISOString() };
-          
-          // Đảm bảo body gửi đi có ID để giữ quan hệ toàn vẹn
-          body.record.id = id;
-          
-          if (this.cache[sheet]) this.cache[sheet].data.push(newRecord);
-          this.addToWriteQueue(action, sheet, body, id);
-          
-          // Đồng bộ vào localStorage ngay lập tức
-          this.localStorageRequest(action, sheet, body);
-          
-          return newRecord;
-        } else if (action === 'update') {
-          if (this.cache[sheet]) {
-            const idx = this.cache[sheet].data.findIndex((i: any) => i.id === body.id);
-            if (idx !== -1) this.cache[sheet].data[idx] = { ...this.cache[sheet].data[idx], ...body.record };
-          }
-          this.addToWriteQueue(action, sheet, body, body.id);
-          this.localStorageRequest(action, sheet, body);
-          return { success: true };
-        } else if (action === 'delete') {
-          if (this.cache[sheet]) {
-            this.cache[sheet].data = this.cache[sheet].data.filter((i: any) => i.id !== body.id);
-          }
-          this.addToWriteQueue(action, sheet, body, body.id);
-          this.localStorageRequest(action, sheet, body);
-          return { success: true };
+        // Đảm bảo body gửi đi có ID để giữ quan hệ toàn vẹn
+        body.record.id = id;
+        
+        if (this.cache[sheet]) this.cache[sheet].data.push(newRecord);
+        this.addToWriteQueue(action, sheet, body, id);
+        
+        // Đồng bộ vào localStorage ngay lập tức
+        this.localStorageRequest(action, sheet, body);
+        
+        return newRecord;
+      } else if (action === 'update') {
+        if (this.cache[sheet]) {
+          const idx = this.cache[sheet].data.findIndex((i: any) => i.id === body.id);
+          if (idx !== -1) this.cache[sheet].data[idx] = { ...this.cache[sheet].data[idx], ...body.record };
         }
+        this.addToWriteQueue(action, sheet, body, body.id);
+        this.localStorageRequest(action, sheet, body);
+        return { success: true };
+      } else if (action === 'delete') {
+        if (this.cache[sheet]) {
+          this.cache[sheet].data = this.cache[sheet].data.filter((i: any) => i.id !== body.id);
+        }
+        this.addToWriteQueue(action, sheet, body, body.id);
+        this.localStorageRequest(action, sheet, body);
+        return { success: true };
       }
+    }
 
-      // Sử dụng POST cho tất cả các yêu cầu đọc/auth để tránh vấn đề CORS với GET/OPTIONS trong Apps Script
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({ action, sheet, ...body }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        mode: 'cors',
-        credentials: 'omit'
-      });
+    // Sử dụng POST cho tất cả các yêu cầu đọc/auth để tránh vấn đề CORS với GET/OPTIONS trong Apps Script
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action, sheet, ...body }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      mode: 'cors',
+      credentials: 'omit'
+    });
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
@@ -213,6 +230,9 @@ class GoogleSheetsDB {
       }
       // Only fallback to localStorage if it's a network error or 404
       return this.localStorageRequest(action, sheet, body);
+    } finally {
+      this.activeRequests--;
+      this.notifyLoadingChange();
     }
   }
 
@@ -322,7 +342,11 @@ class GoogleSheetsDB {
   }
 
   async batchRead(sheets: string[]) {
-    let apiUrl = this.apiUrl?.trim();
+    this.activeRequests++;
+    this.notifyLoadingChange();
+
+    try {
+      let apiUrl = this.apiUrl?.trim();
     if (!apiUrl || !apiUrl.startsWith('http')) {
       const result: any = {};
       for (const sheet of sheets) {
@@ -334,62 +358,61 @@ class GoogleSheetsDB {
 
     apiUrl = apiUrl.replace(/\/+$/, '');
 
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'batch_read', sheets }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        mode: 'cors',
-        credentials: 'omit'
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      
-      this.connectionStatus = 'connected';
-      this.notifyConnectionChange();
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'batch_read', sheets }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      mode: 'cors',
+      credentials: 'omit'
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    
+    this.connectionStatus = 'connected';
+    this.notifyConnectionChange();
 
-      if (data.error) throw new Error(data.error);
+    if (data.error) throw new Error(data.error);
 
-      // Update cache for each sheet and merge pending
-      Object.keys(data).forEach(sheet => {
-        if (Array.isArray(data[sheet])) {
-          let sheetData = data[sheet];
+    // Update cache for each sheet and merge pending
+    Object.keys(data).forEach(sheet => {
+      if (Array.isArray(data[sheet])) {
+        let sheetData = data[sheet];
 
-          // Merge pending creates
-          const pendingCreates = this.writeQueue
-            .filter(task => task.sheet === sheet && task.action === 'create')
-            .map(task => ({ ...task.body.record, id: task.id, _pending: true }));
-          
-          pendingCreates.forEach(pending => {
-            if (!sheetData.find((item: any) => item.id === pending.id)) {
-              sheetData.push(pending);
-            }
+        // Merge pending creates
+        const pendingCreates = this.writeQueue
+          .filter(task => task.sheet === sheet && task.action === 'create')
+          .map(task => ({ ...task.body.record, id: task.id, _pending: true }));
+        
+        pendingCreates.forEach(pending => {
+          if (!sheetData.find((item: any) => item.id === pending.id)) {
+            sheetData.push(pending);
+          }
+        });
+
+        // Apply pending updates
+        this.writeQueue
+          .filter(task => task.sheet === sheet && task.action === 'update')
+          .forEach(task => {
+            const idx = sheetData.findIndex((item: any) => item.id === task.id);
+            if (idx !== -1) sheetData[idx] = { ...sheetData[idx], ...task.body.record, _pending: true };
           });
 
-          // Apply pending updates
-          this.writeQueue
-            .filter(task => task.sheet === sheet && task.action === 'update')
-            .forEach(task => {
-              const idx = sheetData.findIndex((item: any) => item.id === task.id);
-              if (idx !== -1) sheetData[idx] = { ...sheetData[idx], ...task.body.record, _pending: true };
-            });
+        // Apply pending deletes
+        const pendingDeletes = this.writeQueue
+          .filter(task => task.sheet === sheet && task.action === 'delete')
+          .map(task => task.id);
+        
+        sheetData = sheetData.filter((item: any) => !pendingDeletes.includes(item.id));
 
-          // Apply pending deletes
-          const pendingDeletes = this.writeQueue
-            .filter(task => task.sheet === sheet && task.action === 'delete')
-            .map(task => task.id);
-          
-          sheetData = sheetData.filter((item: any) => !pendingDeletes.includes(item.id));
-
-          data[sheet] = sheetData;
-          this.cache[sheet] = {
-            data: sheetData,
-            timestamp: Date.now()
-          };
-        }
-      });
-      
-      return data;
+        data[sheet] = sheetData;
+        this.cache[sheet] = {
+          data: sheetData,
+          timestamp: Date.now()
+        };
+      }
+    });
+    
+    return data;
     } catch (error) {
       console.error('Batch read error:', error);
       this.connectionStatus = 'error';
@@ -404,6 +427,9 @@ class GoogleSheetsDB {
         result[sheet] = Array.isArray(list) ? list : [];
       }
       return result;
+    } finally {
+      this.activeRequests--;
+      this.notifyLoadingChange();
     }
   }
 

@@ -127,15 +127,15 @@ export default function ExpenseManagement() {
         
         <div className="flex flex-col justify-center">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger 
-              nativeButton={false}
-              render={
-                <Button className="w-full h-full bg-stone-800 hover:bg-stone-700 text-stone-50 text-lg font-bold rounded-2xl py-8 shadow-lg shadow-stone-200">
-                  <Plus className="w-6 h-6 mr-2" />
-                  Thêm chi phí
-                </Button>
-              }
-            />
+          <DialogTrigger 
+            nativeButton={true}
+            render={
+              <Button className="w-full h-full bg-stone-800 hover:bg-stone-700 text-stone-50 text-lg font-bold rounded-2xl py-8 shadow-lg shadow-stone-200">
+                <Plus className="w-6 h-6 mr-2" />
+                Thêm chi phí
+              </Button>
+            }
+          />
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Thêm khoản chi mới</DialogTitle>

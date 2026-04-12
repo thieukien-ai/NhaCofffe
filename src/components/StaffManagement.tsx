@@ -33,7 +33,19 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function StaffManagement() {
+  const user = pb.authStore.model;
   const [users, setUsers] = useState<User[]>([]);
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <div className="p-6 bg-red-50 text-red-600 rounded-3xl border border-red-100 text-center max-w-md">
+          <h2 className="text-2xl font-serif mb-2">Truy cập bị từ chối</h2>
+          <p className="text-sm">Chỉ tài khoản Quản trị viên mới có quyền quản lý nhân sự.</p>
+        </div>
+      </div>
+    );
+  }
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -126,13 +138,15 @@ export default function StaffManagement() {
   const roleLabels: Record<string, string> = {
     admin: 'Quản trị viên',
     staff: 'Nhân viên phục vụ',
-    barista: 'Nhân viên pha chế'
+    barista: 'Nhân viên pha chế',
+    cast: 'Caster (Quản lý vận hành)'
   };
 
   const roleColors: Record<string, string> = {
     admin: 'bg-red-100 text-red-700',
     staff: 'bg-blue-100 text-blue-700',
-    barista: 'bg-orange-100 text-orange-700'
+    barista: 'bg-orange-100 text-orange-700',
+    cast: 'bg-purple-100 text-purple-700'
   };
 
   return (
@@ -144,7 +158,7 @@ export default function StaffManagement() {
         </h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger 
-            nativeButton={false}
+            nativeButton={true}
             render={
               <Button onClick={() => handleOpenDialog()} className="bg-stone-800 text-stone-50">
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -201,6 +215,7 @@ export default function StaffManagement() {
                       <SelectItem value="admin">Quản trị viên</SelectItem>
                       <SelectItem value="staff">Nhân viên phục vụ</SelectItem>
                       <SelectItem value="barista">Nhân viên pha chế</SelectItem>
+                      <SelectItem value="cast">Caster (Quản lý vận hành)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

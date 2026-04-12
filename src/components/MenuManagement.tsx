@@ -122,7 +122,7 @@ export default function MenuManagement() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger 
-            nativeButton={false}
+            nativeButton={true}
             render={
               <Button 
                 className="bg-stone-800 hover:bg-stone-700 text-stone-50"

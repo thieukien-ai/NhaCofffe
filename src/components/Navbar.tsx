@@ -93,20 +93,22 @@ export default function Navbar({ onCartToggle, cartCount = 0 }: NavbarProps) {
   ];
 
   const adminNavItems = [
-    { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
-    { icon: Coffee, label: 'Menu', path: '/admin/menu' },
-    { icon: Package, label: 'Nguyên liệu', path: '/admin/ingredients' },
-    { icon: Receipt, label: 'Đơn hàng', path: '/admin/orders' },
-    { icon: TrendingUp, label: 'Tài chính', path: '/admin/expenses' },
-    { icon: Users, label: 'Nhân viên', path: '/admin/staff' },
+    { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin', show: user?.role === 'admin' },
+    { icon: Coffee, label: 'Menu', path: '/admin/menu', show: true },
+    { icon: Package, label: 'Nguyên liệu', path: '/admin/ingredients', show: true },
+    { icon: Receipt, label: 'Đơn hàng', path: '/admin/orders', show: true },
+    { icon: TrendingUp, label: 'Tài chính', path: '/admin/expenses', show: true },
+    { icon: Users, label: 'Nhân viên', path: '/admin/staff', show: user?.role === 'admin' },
   ];
 
-  const displayItems = isAdminView ? adminNavItems : mainNavItems.filter(i => i.show);
+  const displayItems = isAdminView 
+    ? adminNavItems.filter(i => i.show) 
+    : mainNavItems.filter(i => i.show);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-900 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-6 text-stone-400 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none shrink-0 overflow-y-auto scrollbar-hide">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-stone-900 flex lg:flex-col items-center justify-around lg:justify-start lg:static lg:w-20 lg:h-full lg:py-6 lg:space-y-6 text-stone-400 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] lg:shadow-none shrink-0 overflow-x-auto lg:overflow-y-auto scrollbar-top show-scrollbar">
       {/* Logo / Home Icon */}
-      <div className="flex flex-col items-center lg:space-y-4 w-auto lg:w-full lg:mb-4">
+      <div className="flex flex-col items-center lg:space-y-4 w-auto lg:w-full lg:mb-4 shrink-0">
         <button 
           onClick={() => navigate('/')}
           className={cn(
@@ -135,7 +137,7 @@ export default function Navbar({ onCartToggle, cartCount = 0 }: NavbarProps) {
       </div>
 
       {/* Navigation Items */}
-      <div className="flex lg:flex-col items-center justify-around lg:justify-start w-full lg:space-y-3">
+      <div className="flex lg:flex-col items-center justify-around lg:justify-start w-full lg:space-y-3 shrink-0">
         {displayItems.map((item: any) => {
           const isActive = location.pathname === item.path;
           return (
@@ -206,7 +208,7 @@ export default function Navbar({ onCartToggle, cartCount = 0 }: NavbarProps) {
       </div>
 
       {/* Mobile Auth Button */}
-      <div className="lg:hidden flex items-center">
+      <div className="lg:hidden flex items-center shrink-0">
         {user ? (
           <button 
             onClick={handleLogout}
